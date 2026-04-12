@@ -81,6 +81,94 @@ Si necesitas realizar pruebas (disponibles para el front o vía terminal):
 npm run test
 ```
 
+```bash
+para probar los endpoints desde la terminal usen estos comandos ( ojo solo powershell ): 
+-- Crear Usuario--
+$body = @{
+     username = "yimy"
+     password = "123"
+     id_rol   = 1
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:3000/api/users" -Method Post -Body $body -ContentType "application/json"
+
+
+-- Obtener lista de usuarios--
+Invoke-RestMethod -Uri "http://localhost:3000/api/users" -Method get
+
+
+-- Modificar Usuario --
+$body = @{
+    username = "yimy_editado"
+    id_rol   = 1
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:3000/api/users/11" -Method Put -Body $body -ContentType "application/json"
+
+
+-- Eliminar Usuario --
+Invoke-RestMethod -Uri "http://localhost:3000/api/users/11" -Method Delete
+
+-- Obtener gestiones --
+Invoke-RestMethod -Uri "http://localhost:3000/api/gestiones" -Method Get
+
+--crear gestion--
+$body = @{
+    anio = 2027
+    fecha_inicio = "2027-02-01"
+    fecha_fin = "2027-11-26"
+    estado = "planificada"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:3000/api/gestiones" -Method Post -Body $body -ContentType "application/json"
+
+--actualizar gestión--
+$body = @{
+    anio = 2027
+    fecha_inicio = "2027-02-01"
+    fecha_fin = "2027-11-26"
+    estado = "activa"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:3000/api/gestiones/3" -Method Put -Body $body -ContentType "application/json"
+
+--obtener grados--
+Invoke-RestMethod -Uri "http://localhost:3000/api/estructura/aulas" -Method Get
+Invoke-RestMethod -Uri "http://localhost:3000/api/estructura/niveles" -Method Get
+Invoke-RestMethod -Uri "http://localhost:3000/api/estructura/grados" -Method Get
+
+--crear nueva aula--
+$body = @{
+    numero_aula = "A-09"
+    descripcion = "Aula nueva de computación"
+    cantidad_mesas = 20
+    cantidad_sillas = 20
+    capacidad_estudiantes = 20
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:3000/api/estructura/aulas" -Method Post -Body $body -ContentType "application/json"
+
+--obtener campos-- 
+Invoke-RestMethod -Uri "http://localhost:3000/api/materias/campos" -Method Get
+
+--ver materias-- (observar)
+Invoke-RestMethod -Uri "http://localhost:3000/api/materias" -Method Get
+
+--crear materia-- 
+$body = @{
+    nombre_materia = "Computación Básica"
+    descripcion = "Introducción a la informática para niños"
+    id_campo = 2
+    aplica_primaria = $true
+    estado = $true
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:3000/api/materias" -Method Post -Body $body -ContentType "application/json"
+```
+antes de correr los comandos previamente deben correr el sevirdor backend.
+
+Para hacer el front guiense de los comandos ya que es casi lo mismo para hacer el fecth en lsa peticiones.
+
 ## 📡 Endpoints Disponibles (Fase 1)
 
 ### 🔐 Autenticación (`/api/auth`)
