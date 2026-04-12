@@ -1,5 +1,10 @@
+/**
+ * Pool de conexiones a PostgreSQL (pg).
+ * Reutiliza conexiones en lugar de abrir una nueva en cada consulta.
+ */
 const { Pool } = require('pg');
-require('dotenv').config;
+// Asegura que .env esté cargado si este módulo se importa antes que server.js
+require('dotenv').config();
 
 const pool = new Pool({
     user: process.env.DB_USER,

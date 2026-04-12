@@ -2,7 +2,9 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { apiLogout } from "@/lib/api"
+import { clearClientSession } from "@/lib/session"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -132,7 +134,14 @@ interface SidebarProps {
 
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [openItems, setOpenItems] = useState<string[]>([])
+
+  const handleLogout = async () => {
+    await apiLogout()
+    clearClientSession()
+    router.push("/login")
+  }
 
   const toggleItem = (title: string) => {
     setOpenItems(prev =>
@@ -301,11 +310,13 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           isCollapsed && "flex justify-center"
         )}>
           <Button
+            type="button"
             variant="ghost"
             className={cn(
               "w-full justify-start gap-3 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
               isCollapsed && "justify-center px-2"
             )}
+            onClick={handleLogout}
           >
             <LogOut className="h-5 w-5 shrink-0" />
             {!isCollapsed && <span className="text-sm">Cerrar Sesión</span>}

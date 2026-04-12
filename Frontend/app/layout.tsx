@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Roboto } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { Toaster } from 'sonner'
 import './globals.css'
 
 const roboto = Roboto({ 
@@ -50,6 +51,7 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={`${roboto.variable} font-sans antialiased`}>
         {children}
+        <Toaster richColors position="top-center" />
         <Analytics />
       </body>
     </html>

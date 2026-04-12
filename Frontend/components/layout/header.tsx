@@ -1,6 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { apiLogout } from "@/lib/api"
+import { clearClientSession } from "@/lib/session"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -31,6 +34,7 @@ interface HeaderProps {
 }
 
 export function Header({ isCollapsed, onMenuClick }: HeaderProps) {
+  const router = useRouter()
   const [isDark, setIsDark] = useState(false)
   const [notifications] = useState([
     { id: 1, title: "Nuevo pago registrado", time: "Hace 5 min", read: false },
@@ -50,6 +54,12 @@ export function Header({ isCollapsed, onMenuClick }: HeaderProps) {
   }
 
   const unreadCount = notifications.filter(n => !n.read).length
+
+  const handleLogout = async () => {
+    await apiLogout()
+    clearClientSession()
+    router.push("/login")
+  }
 
   return (
     <header
@@ -182,7 +192,10 @@ export function Header({ isCollapsed, onMenuClick }: HeaderProps) {
               Configuración
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+            <DropdownMenuItem
+              className="cursor-pointer text-destructive focus:text-destructive"
+              onClick={handleLogout}
+            >
               <LogOut className="mr-2 h-4 w-4" />
               Cerrar Sesión
             </DropdownMenuItem>
