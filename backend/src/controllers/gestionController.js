@@ -10,9 +10,9 @@ const createGestion = async (req, res) => {
             [anio, fecha_inicio, fecha_fin, estado || 'planificada']
         );
 
-        res.status(201).json({ mesagge: 'Gestion creada con exito', gestion: nuevaGestion.rows[0] });
+        res.status(201).json({ message: 'Gestion creada con exito', gestion: nuevaGestion.rows[0] });
     } catch (error) {
-        res.status(500).json({ mesagge: 'Error al crear la gestion', error: error.mesagge });
+        res.status(500).json({ message: 'Error al crear la gestion', error: error.message });
     }
 };
 
@@ -21,7 +21,7 @@ const getGestiones = async (req, res) => {
         const gestiones = await pool.query('SELECT * FROM gestion_academica ORDER BY anio DESC',);
         res.json(gestiones.rows);
     } catch (error) {
-        res.status(500).json({ mesagge: 'Error al obtener las gestiones', error: error.mesagge });
+        res.status(500).json({ message: 'Error al obtener las gestiones', error: error.message });
     }
 };
 
@@ -38,9 +38,9 @@ const updateGestion = async (req, res) => {
 
         if (updatedGestion.rows.length == 0) return res.status(404).json({ message: 'No se encontro la gestion' });
 
-        res.json({ mesagge: 'Gestion actualizada con exito', gestion: updatedGestion.rows[0] });
+        res.json({ message: 'Gestion actualizada con exito', gestion: updatedGestion.rows[0] });
     } catch (error) {
-        res.status(500).json({ message: 'Error al actualizar la gestion', error: error.mesagge });
+        res.status(500).json({ message: 'Error al actualizar la gestion', error: error.message });
     }
 };
 

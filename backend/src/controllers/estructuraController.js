@@ -1,10 +1,9 @@
 const pool = require('../config/db');
-const { get } = require('../routes/authRoutes');
 
 const getAulas = async (req, res) => {
     try {
         const aulas = await pool.query('SELECT * FROM aula ORDER BY numero_aula');
-        res.json(aulas);
+        res.json(aulas.rows);
     } catch (error) {
         res.status(500).json({ message: 'Error al obtener las aulas', error: error.message });
     }
@@ -28,7 +27,7 @@ const createAula = async (req, res) => {
 const getNiveles = async (req, res) => {
     try {
         const niveles = await pool.query('SELECT * FROM nivel');
-        res.json(niveles.rows[0]);
+        res.json(niveles.rows);
     } catch (error) {
         res.status(500).json({ message: 'Error al obener los niveles', error: error.message });
     }
@@ -41,7 +40,7 @@ const getGrados = async (req, res) => {
             FROM grado g 
             JOIN nivel n ON g.id_nivel = n.id_nivel
         `);
-        res.json(grados.rows[0]);
+        res.json(grados.rows);
     } catch (error) {
         res.status(500).json({ message: 'Error al obenter los grados', error: error.message });
     }

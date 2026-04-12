@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { GraduationCap, Eye, EyeOff, Lock, User } from "lucide-react"
 import { apiLogin } from "@/lib/api"
-import { AUTH_TOKEN_KEY, USER_NAME_KEY, USER_ROLE_KEY } from "@/lib/session"
+import { persistClientSession } from "@/lib/session"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -32,9 +32,11 @@ export default function LoginPage() {
     setIsLoading(true)
     try {
       const data = await apiLogin(formData.username.trim(), formData.password)
-      localStorage.setItem(AUTH_TOKEN_KEY, data.token)
-      localStorage.setItem(USER_NAME_KEY, formData.username.trim())
-      localStorage.setItem(USER_ROLE_KEY, String(data.role))
+      persistClientSession({
+        token: data.token,
+        username: formData.username.trim(),
+        role: data.role,
+      })
       router.push("/dashboard")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al iniciar sesión")

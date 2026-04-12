@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import {
   StatCard,
   QuickActions,
@@ -17,8 +18,48 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { apiGetAulas, apiGetGestiones, apiGetMaterias, apiGetUsers } from "@/lib/api"
+import { ID_ROL_PROFESOR } from "@/lib/roles"
 
 export default function DashboardPage() {
+  const [profesoresCount, setProfesoresCount] = useState<number | null>(null)
+  const [materiasCount, setMateriasCount] = useState<number | null>(null)
+  const [gestionResumen, setGestionResumen] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const [users, materias, gestiones, aulas] = await Promise.all([
+          apiGetUsers().catch(() => []),
+          apiGetMaterias().catch(() => []),
+          apiGetGestiones().catch(() => []),
+          apiGetAulas().catch(() => []),
+        ])
+        if (cancelled) return
+        setProfesoresCount(users.filter((u) => u.id_rol === ID_ROL_PROFESOR).length)
+        setMateriasCount(materias.length)
+        const g = gestiones[0]
+        const aulasLine =
+          aulas.length > 0 ? ` · ${aulas.length} aula(s) registradas en estructura` : ""
+        setGestionResumen(
+          (g
+            ? `Última gestión en sistema: ${g.anio} (${g.estado})`
+            : "Sin gestiones académicas registradas en el API.") + aulasLine
+        )
+      } catch {
+        if (!cancelled) {
+          setProfesoresCount(null)
+          setMateriasCount(null)
+          setGestionResumen("No se pudo sincronizar con el servidor.")
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   return (
     <div className="space-y-6">
       {/* Dashboard Principal */}
@@ -30,6 +71,11 @@ export default function DashboardPage() {
           Este es el panel principal del sistema. Aquí encontrará un resumen de
           la actividad de la Unidad Educativa.
         </p>
+        {gestionResumen && (
+          <p className="text-sm text-muted-foreground border-l-2 border-primary/40 pl-3 py-0.5">
+            {gestionResumen}
+          </p>
+        )}
       </div>
 
       {/* Stats Grid */}
@@ -44,9 +90,9 @@ export default function DashboardPage() {
           trend={{ value: 5, isPositive: true }}
         />
         <StatCard
-          title="Docentes"
-          value="18"
-          description="Personal activo"
+          title="Profesores"
+          value={profesoresCount ?? "—"}
+          description="Cuentas con rol de profesor"
           iconName="graduation-cap"
           href="/dashboard/usuarios/docentes"
           variant="secondary"
@@ -54,18 +100,18 @@ export default function DashboardPage() {
         <StatCard
           title="Pagos del Mes"
           value="Bs. 45,200"
-          description="Abril 2025"
+          description="Abril 2026"
           iconName="dollar-sign"
           href="/dashboard/pagos"
           variant="success"
           trend={{ value: 12, isPositive: true }}
         />
         <StatCard
-          title="Inventario"
-          value="156"
-          description="Items registrados"
-          iconName="package"
-          href="/dashboard/inventario"
+          title="Materias"
+          value={materiasCount ?? "—"}
+          description="En catálogo académico"
+          iconName="book-open"
+          href="/dashboard/academico/materias"
           variant="warning"
         />
       </div>

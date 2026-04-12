@@ -1,5 +1,5 @@
 /**
- * Cliente HTTP hacia el backend Express (/api/auth, /api/users).
+ * Cliente HTTP hacia el backend Express (/api/auth, /api/users, /api/gestiones, …).
  *
  * - Si existe NEXT_PUBLIC_API_URL → se llama directo a ese host (CORS debe permitirlo en Express).
  * - Si no → se usa la misma URL que el front (p. ej. /api/...) y Next reenvía al backend (ver next.config.mjs `rewrites`).
@@ -113,3 +113,179 @@ export async function apiDeleteUser(id: number) {
 
 /** Base usada para las peticiones (vacío = mismo origen + proxy en Next). */
 export const API_BASE = getRequestBase()
+
+/* ——— Gestión académica ——— */
+
+export type ApiGestionAcademica = {
+  id_gestion: number
+  anio: number
+  fecha_inicio: string
+  fecha_fin: string
+  estado: string
+}
+
+export async function apiGetGestiones(): Promise<ApiGestionAcademica[]> {
+  const res = await fetch(apiUrl("/api/gestiones"), { cache: "no-store" })
+  const data = await parseJson(res)
+  if (!res.ok) {
+    throw new Error(String(data.message ?? "Error al obtener gestiones"))
+  }
+  return data as unknown as ApiGestionAcademica[]
+}
+
+export async function apiCreateGestion(body: {
+  anio: number
+  fecha_inicio: string
+  fecha_fin: string
+  estado?: string
+}) {
+  const res = await fetch(apiUrl("/api/gestiones"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+  const data = await parseJson(res)
+  if (!res.ok) {
+    throw new Error(String(data.message ?? data.error ?? "Error al crear gestión"))
+  }
+  return data as { message: string; gestion: ApiGestionAcademica }
+}
+
+export async function apiUpdateGestion(
+  id: number,
+  body: { anio: number; fecha_inicio: string; fecha_fin: string; estado: string }
+) {
+  const res = await fetch(apiUrl(`/api/gestiones/${id}`), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+  const data = await parseJson(res)
+  if (!res.ok) {
+    throw new Error(String(data.message ?? "Error al actualizar gestión"))
+  }
+  return data as { message: string; gestion: ApiGestionAcademica }
+}
+
+/* ——— Estructura (aulas, niveles, grados) ——— */
+
+export type ApiAula = {
+  id_aula?: number
+  numero_aula: string
+  descripcion?: string | null
+  cantidad_mesas?: number | null
+  cantidad_sillas?: number | null
+  capacidad_estudiantes?: number | null
+}
+
+export type ApiNivel = {
+  id_nivel: number
+  nombre_nivel: string
+}
+
+export type ApiGrado = {
+  id_grado: number
+  nombre_grado: string
+  nombre_nivel: string
+  id_nivel: number
+}
+
+export async function apiGetAulas(): Promise<ApiAula[]> {
+  const res = await fetch(apiUrl("/api/estructura/aulas"), { cache: "no-store" })
+  const data = await parseJson(res)
+  if (!res.ok) {
+    throw new Error(String(data.message ?? "Error al obtener aulas"))
+  }
+  return data as unknown as ApiAula[]
+}
+
+export async function apiCreateAula(body: {
+  numero_aula: string
+  descripcion?: string | null
+  cantidad_mesas?: number
+  cantidad_sillas?: number
+  capacidad_estudiantes?: number
+}) {
+  const res = await fetch(apiUrl("/api/estructura/aulas"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+  const data = await parseJson(res)
+  if (!res.ok) {
+    throw new Error(String(data.message ?? "Error al crear aula"))
+  }
+  return data as ApiAula
+}
+
+export async function apiGetNiveles(): Promise<ApiNivel[]> {
+  const res = await fetch(apiUrl("/api/estructura/niveles"), { cache: "no-store" })
+  const data = await parseJson(res)
+  if (!res.ok) {
+    throw new Error(String(data.message ?? "Error al obtener niveles"))
+  }
+  return data as unknown as ApiNivel[]
+}
+
+export async function apiGetGrados(): Promise<ApiGrado[]> {
+  const res = await fetch(apiUrl("/api/estructura/grados"), { cache: "no-store" })
+  const data = await parseJson(res)
+  if (!res.ok) {
+    throw new Error(String(data.message ?? "Error al obtener grados"))
+  }
+  return data as unknown as ApiGrado[]
+}
+
+/* ——— Materias ——— */
+
+export type ApiCampoSaber = {
+  id_campo: number
+  nombre_campo: string
+  orden_visualizacion?: number
+}
+
+export type ApiMateria = {
+  id_materia: number
+  nombre_materia: string
+  descripcion?: string | null
+  nombre_campo: string
+  aplica_primaria: boolean
+  estado: string
+}
+
+export async function apiGetCamposSaber(): Promise<ApiCampoSaber[]> {
+  const res = await fetch(apiUrl("/api/materias/campos"), { cache: "no-store" })
+  const data = await parseJson(res)
+  if (!res.ok) {
+    throw new Error(String(data.message ?? "Error al obtener campos del saber"))
+  }
+  return data as unknown as ApiCampoSaber[]
+}
+
+export async function apiGetMaterias(): Promise<ApiMateria[]> {
+  const res = await fetch(apiUrl("/api/materias"), { cache: "no-store" })
+  const data = await parseJson(res)
+  if (!res.ok) {
+    throw new Error(String(data.message ?? "Error al obtener materias"))
+  }
+  return data as unknown as ApiMateria[]
+}
+
+export async function apiCreateMateria(body: {
+  nombre_materia: string
+  descripcion?: string
+  id_campo: number
+  aplica_primaria: boolean
+  estado: string
+}) {
+  const res = await fetch(apiUrl("/api/materias"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+  const data = await parseJson(res)
+  if (!res.ok) {
+    throw new Error(String(data.message ?? "Error al crear materia"))
+  }
+  return data as ApiMateria
+}

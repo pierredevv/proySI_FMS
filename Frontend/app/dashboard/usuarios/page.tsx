@@ -49,7 +49,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Pencil, Plus, Trash2, Users } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Pencil, Plus, Search, Trash2, Users } from "lucide-react"
 
 type FiltroRol = "todos" | string
 type FiltroEstado = "todos" | EstadoUsuario
@@ -66,6 +67,7 @@ export default function GestionUsuariosPage() {
   const [cargando, setCargando] = useState(true)
   const [filtroRol, setFiltroRol] = useState<FiltroRol>("todos")
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>("todos")
+  const [busqueda, setBusqueda] = useState("")
 
   const [dialogoNuevo, setDialogoNuevo] = useState(false)
   const [formUsuario, setFormUsuario] = useState("")
@@ -107,12 +109,14 @@ export default function GestionUsuariosPage() {
   }, [usuarios, estadoMap])
 
   const filtrados = useMemo(() => {
+    const q = normalizarUsuario(busqueda)
     return filas.filter((row) => {
       if (filtroRol !== "todos" && String(row.id_rol) !== filtroRol) return false
       if (filtroEstado !== "todos" && row.estado !== filtroEstado) return false
+      if (q && !normalizarUsuario(row.username).includes(q)) return false
       return true
     })
-  }, [filas, filtroRol, filtroEstado])
+  }, [filas, filtroRol, filtroEstado, busqueda])
 
   const abrirNuevo = () => {
     setFormUsuario("")
@@ -228,9 +232,10 @@ export default function GestionUsuariosPage() {
             <Users className="h-7 w-7 text-primary" />
             Gestión de usuarios
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Lista y altas contra <code className="text-xs">GET/POST /api/users</code>. El estado se
-            muestra y filtra en pantalla; el servidor solo almacena usuario, contraseña (hash) y rol.
+          <p className="text-muted-foreground text-sm mt-1 max-w-2xl">
+            Administre cuentas de acceso: creación segura de contraseñas (hash en servidor), asignación
+            de rol y baja de usuarios. El estado activo/inactivo es una referencia visual en esta
+            pantalla hasta que el API incorpore ese campo.
           </p>
         </div>
         <Button onClick={abrirNuevo} className="shrink-0">
@@ -242,10 +247,27 @@ export default function GestionUsuariosPage() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg">Usuarios</CardTitle>
-          <CardDescription>Filtros por rol y por estado (estado en cliente).</CardDescription>
+          <CardDescription>
+            Busque por nombre de usuario y combine filtros. Las acciones piden confirmación al
+            eliminar.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="space-y-1.5 flex-1 min-w-[200px] max-w-md">
+              <Label htmlFor="busq-usuarios">Buscar</Label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="busq-usuarios"
+                  placeholder="Nombre de usuario…"
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  className="pl-9"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
             <div className="space-y-1.5 min-w-[180px]">
               <Label>Rol</Label>
               <Select value={filtroRol} onValueChange={(v) => setFiltroRol(v as FiltroRol)}>
@@ -290,11 +312,25 @@ export default function GestionUsuariosPage() {
               </TableHeader>
               <TableBody>
                 {cargando ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
-                      Cargando…
-                    </TableCell>
-                  </TableRow>
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell>
+                        <Skeleton className="h-4 w-28" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-5 w-24 rounded-full" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-32" />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Skeleton className="h-8 w-20 ml-auto" />
+                      </TableCell>
+                    </TableRow>
+                  ))
                 ) : filtrados.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
@@ -349,7 +385,8 @@ export default function GestionUsuariosPage() {
           <DialogHeader>
             <DialogTitle>Nuevo usuario</DialogTitle>
             <DialogDescription>
-              Validación: usuario único y rol permitido. La contraseña se hashea en el servidor.
+              Elija un nombre de usuario único y una contraseña robusta. El rol define el alcance en
+              el sistema.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -419,8 +456,8 @@ export default function GestionUsuariosPage() {
           <DialogHeader>
             <DialogTitle>Editar usuario</DialogTitle>
             <DialogDescription>
-              Actualiza nombre y rol vía <code className="text-xs">PUT /api/users/:id</code>. El
-              estado es solo en esta pantalla.
+              Modifique el nombre de inicio de sesión o el rol. El indicador de estado es local a
+              esta vista.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -479,8 +516,8 @@ export default function GestionUsuariosPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción llama a <code className="text-xs">DELETE /api/users/{borrarId}</code> y no
-              se puede deshacer desde aquí.
+              Se eliminará la cuenta de forma permanente en el servidor. Esta acción no se puede
+              deshacer desde la aplicación.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

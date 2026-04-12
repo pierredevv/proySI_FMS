@@ -525,7 +525,7 @@ export default function AulasPage() {
                   <TableHead>Aula</TableHead>
                   <TableHead>Nivel</TableHead>
                   <TableHead>Grado</TableHead>
-                  <TableHead>Docente</TableHead>
+                  <TableHead>Profesor</TableHead>
                   <TableHead className="text-center">Ocupación</TableHead>
                   <TableHead className="text-center">Mobiliario</TableHead>
                   <TableHead>Estado</TableHead>

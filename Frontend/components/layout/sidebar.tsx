@@ -41,6 +41,8 @@ import {
   History,
   DoorOpen,
   CalendarCheck,
+  CalendarDays,
+  Library,
 } from "lucide-react"
 
 interface NavItem {
@@ -62,7 +64,7 @@ const navItems: NavItem[] = [
     children: [
       { title: "Gestión de Usuarios", href: "/dashboard/usuarios", icon: UserCog },
       { title: "Roles y Permisos", href: "/dashboard/usuarios/roles", icon: ShieldCheck },
-      { title: "Personal Docente", href: "/dashboard/usuarios/docentes", icon: GraduationCap },
+      { title: "Profesores", href: "/dashboard/usuarios/docentes", icon: GraduationCap },
     ],
   },
   {
@@ -79,6 +81,8 @@ const navItems: NavItem[] = [
     title: "Académico",
     icon: BookOpen,
     children: [
+      { title: "Gestión académica", href: "/dashboard/academico/gestiones", icon: CalendarDays },
+      { title: "Catálogo de materias", href: "/dashboard/academico/materias", icon: Library },
       { title: "Calificaciones", href: "/dashboard/calificaciones", icon: ClipboardList },
       { title: "Asistencia", href: "/dashboard/asistencia", icon: CalendarCheck },
       { title: "Notas (Simple)", href: "/dashboard/notas", icon: FileText },

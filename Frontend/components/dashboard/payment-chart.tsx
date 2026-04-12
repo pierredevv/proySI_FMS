@@ -33,45 +33,48 @@ export function PaymentChart() {
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" strokeOpacity={0.9} />
               <XAxis
                 dataKey="month"
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: "var(--chart-axis)" }}
                 tickLine={false}
                 axisLine={false}
-                className="text-muted-foreground"
               />
               <YAxis
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: "var(--chart-axis)" }}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(value) => `${value}%`}
-                className="text-muted-foreground"
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
+                  backgroundColor: "var(--card)",
+                  border: "1px solid var(--border)",
                   borderRadius: "8px",
                   fontSize: "12px",
+                  color: "var(--foreground)",
                 }}
                 formatter={(value: number) => [`${value}%`, ""]}
               />
               <Legend
                 iconType="circle"
                 iconSize={8}
-                wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }}
+                wrapperStyle={{
+                  fontSize: "12px",
+                  paddingTop: "10px",
+                  color: "var(--muted-foreground)",
+                }}
               />
               <Bar
                 dataKey="pagados"
                 name="Pagados"
-                fill="hsl(var(--chart-2))"
+                fill="var(--chart-2)"
                 radius={[4, 4, 0, 0]}
               />
               <Bar
                 dataKey="pendientes"
                 name="Pendientes"
-                fill="hsl(var(--chart-3))"
+                fill="var(--chart-3)"
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>
