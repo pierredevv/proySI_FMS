@@ -10,6 +10,11 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+//caso de uso de freed CU03
+//caso de uso de freed CU04
+const gestionRoutes = require('./routes/gestionRoutes');
+const estructuraRoutes = require('./routes/estructuraRoutes');
+const materiaRoutes = require('./routes/materiaRoutes');
 
 const app = express();
 
@@ -21,6 +26,11 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 // CRUD de usuarios en /api/users/...
 app.use('/api/users', userRoutes);
+//ruta del caso de uso de freed CU03
+//ruta del caso de uso de freed CU04
+app.use('/api/gestiones', gestionRoutes);
+app.use('/api/estructura', estructuraRoutes);
+app.use('/api/materias', materiaRoutes);
 
 // Puerto HTTP del servidor; si no defines PORT en .env, usa 3000
 const PORT = process.env.PORT || 3000;
