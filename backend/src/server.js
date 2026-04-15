@@ -4,8 +4,8 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
-//caso de uso de freed CU03
-//caso de uso de freed CU04
+const roleRoutes = require('./routes/roleRoutes')//caso de uso de freed CU03
+const profesorRoutes = require('./routes/profesorRoutes'); //caso de uso de freed CU04
 const gestionRoutes = require('./routes/gestionRoutes');
 const estructuraRoutes = require('./routes/estructuraRoutes');
 const materiaRoutes = require('./routes/materiaRoutes');
@@ -18,8 +18,8 @@ app.use(express.json());
 //RUTAS DE LA API 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-//ruta del caso de uso de freed CU03
-//ruta del caso de uso de freed CU04
+app.use('/api/roles', roleRoutes) //ruta del caso de uso de freed CU03
+app.use('/api/profesores', profesorRoutes); //ruta del caso de uso de freed CU04
 app.use('/api/gestiones', gestionRoutes);
 app.use('/api/estructura', estructuraRoutes);
 app.use('/api/materias', materiaRoutes);
