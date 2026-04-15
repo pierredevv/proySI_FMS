@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useTheme } from "next-themes"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,22 +32,23 @@ interface HeaderProps {
 }
 
 export function Header({ isCollapsed, onMenuClick }: HeaderProps) {
-  const [isDark, setIsDark] = useState(false)
+  const { theme, setTheme } = useTheme()
   const [notifications] = useState([
     { id: 1, title: "Nuevo pago registrado", time: "Hace 5 min", read: false },
     { id: 2, title: "Estudiante inscrito", time: "Hace 1 hora", read: false },
     { id: 3, title: "Stock bajo en materiales", time: "Hace 2 horas", read: true },
   ])
+  const isDark = theme === "dark"
+
+  const [userName, setUserName] = useState("Usuario")
 
   useEffect(() => {
-    const isDarkMode = document.documentElement.classList.contains("dark")
-    setIsDark(isDarkMode)
+    const name = localStorage.getItem("userName")
+    if (name) setUserName(name)
   }, [])
 
   const toggleTheme = () => {
-    const newIsDark = !isDark
-    setIsDark(newIsDark)
-    document.documentElement.classList.toggle("dark", newIsDark)
+    setTheme(isDark ? "light" : "dark")
   }
 
   const unreadCount = notifications.filter(n => !n.read).length
@@ -106,12 +108,11 @@ export function Header({ isCollapsed, onMenuClick }: HeaderProps) {
             >
               <Bell className="h-5 w-5" />
               {unreadCount > 0 && (
-                <Badge
-                  variant="destructive"
-                  className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center"
+                <span
+                  className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground p-0 text-[10px] font-bold flex items-center justify-center border-2 border-background"
                 >
                   {unreadCount}
-                </Badge>
+                </span>
               )}
               <span className="sr-only">Notificaciones</span>
             </Button>
@@ -166,9 +167,9 @@ export function Header({ isCollapsed, onMenuClick }: HeaderProps) {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">Administrador</p>
+                <p className="text-sm font-medium">{userName}</p>
                 <p className="text-xs text-muted-foreground">
-                  admin@colegio.edu.bo
+                  Sistema de Gestión
                 </p>
               </div>
             </DropdownMenuLabel>
@@ -182,7 +183,7 @@ export function Header({ isCollapsed, onMenuClick }: HeaderProps) {
               Configuración
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+            <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={() => { localStorage.clear(); window.location.href = '/login'; }}>
               <LogOut className="mr-2 h-4 w-4" />
               Cerrar Sesión
             </DropdownMenuItem>

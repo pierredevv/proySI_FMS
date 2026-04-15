@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -74,139 +74,6 @@ interface Classroom {
   status: "activa" | "inactiva" | "mantenimiento"
 }
 
-const classrooms: Classroom[] = [
-  {
-    id: 1,
-    number: "A-101",
-    description: "Aula de Pre-Kinder A con área de juegos",
-    level: "pre-kinder",
-    grade: "Pre-Kinder A",
-    capacity: 20,
-    currentStudents: 18,
-    desks: 10,
-    chairs: 22,
-    teacher: "Prof. María López",
-    status: "activa",
-  },
-  {
-    id: 2,
-    number: "A-102",
-    description: "Aula de Pre-Kinder B con área de descanso",
-    level: "pre-kinder",
-    grade: "Pre-Kinder B",
-    capacity: 20,
-    currentStudents: 15,
-    desks: 10,
-    chairs: 22,
-    teacher: "Prof. Ana García",
-    status: "activa",
-  },
-  {
-    id: 3,
-    number: "B-101",
-    description: "Aula de Kinder A",
-    level: "kinder",
-    grade: "Kinder A",
-    capacity: 25,
-    currentStudents: 22,
-    desks: 12,
-    chairs: 26,
-    teacher: "Prof. Carmen Quispe",
-    status: "activa",
-  },
-  {
-    id: 4,
-    number: "B-102",
-    description: "Aula de Kinder B",
-    level: "kinder",
-    grade: "Kinder B",
-    capacity: 25,
-    currentStudents: 20,
-    desks: 12,
-    chairs: 26,
-    teacher: "Prof. Rosa Mamani",
-    status: "activa",
-  },
-  {
-    id: 5,
-    number: "C-101",
-    description: "Aula 1ro Primaria A",
-    level: "primaria",
-    grade: "1ro Primaria A",
-    capacity: 30,
-    currentStudents: 28,
-    desks: 15,
-    chairs: 32,
-    teacher: "Prof. Juan Pérez",
-    status: "activa",
-  },
-  {
-    id: 6,
-    number: "C-102",
-    description: "Aula 2do Primaria A",
-    level: "primaria",
-    grade: "2do Primaria A",
-    capacity: 30,
-    currentStudents: 25,
-    desks: 15,
-    chairs: 32,
-    teacher: "Prof. Pedro Flores",
-    status: "activa",
-  },
-  {
-    id: 7,
-    number: "C-103",
-    description: "Aula 3ro Primaria A",
-    level: "primaria",
-    grade: "3ro Primaria A",
-    capacity: 30,
-    currentStudents: 27,
-    desks: 15,
-    chairs: 30,
-    teacher: "Prof. Laura Condori",
-    status: "activa",
-  },
-  {
-    id: 8,
-    number: "C-104",
-    description: "Aula 4to Primaria A - Requiere mantenimiento de sillas",
-    level: "primaria",
-    grade: "4to Primaria A",
-    capacity: 30,
-    currentStudents: 24,
-    desks: 15,
-    chairs: 28,
-    teacher: "Prof. Diego Martínez",
-    status: "mantenimiento",
-  },
-  {
-    id: 9,
-    number: "C-105",
-    description: "Aula 5to Primaria A",
-    level: "primaria",
-    grade: "5to Primaria A",
-    capacity: 30,
-    currentStudents: 26,
-    desks: 15,
-    chairs: 32,
-    teacher: "Prof. Sofía Rodríguez",
-    status: "activa",
-  },
-  {
-    id: 10,
-    number: "C-106",
-    description: "Aula 6to Primaria A",
-    level: "primaria",
-    grade: "6to Primaria A",
-    capacity: 30,
-    currentStudents: 29,
-    desks: 15,
-    chairs: 32,
-    teacher: "Prof. Carlos Mendoza",
-    status: "activa",
-  },
-]
-
 const levelConfig = {
   "pre-kinder": { label: "Pre-Kinder", color: "bg-pink-100 text-pink-700 border-pink-300" },
   kinder: { label: "Kinder", color: "bg-purple-100 text-purple-700 border-purple-300" },
@@ -220,10 +87,12 @@ const statusConfig = {
 }
 
 export default function AulasPage() {
+  const [classrooms, setClassrooms] = useState<Classroom[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [filterLevel, setFilterLevel] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [newClassroom, setNewClassroom] = useState({
     number: "",
     description: "",
@@ -234,12 +103,73 @@ export default function AulasPage() {
     chairs: "",
   })
 
+  const fetchAulas = async () => {
+    try {
+      const token = localStorage.getItem("token")
+      const res = await fetch("http://localhost:5000/api/estructura/aulas", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const mappedAulas = data.map((a: any) => ({
+          id: a.id_aula,
+          number: a.numero_aula,
+          description: a.descripcion || "Sin descripción",
+          level: "primaria", // mock temporal si no viene
+          grade: "N/A",      // mock temporal si no viene
+          capacity: a.capacidad_estudiantes || 0,
+          currentStudents: 0,
+          desks: a.cantidad_mesas || 0,
+          chairs: a.cantidad_sillas || 0,
+          teacher: "",
+          status: "activa"
+        }))
+        setClassrooms(mappedAulas)
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  useEffect(() => {
+    fetchAulas()
+  }, [])
+
+  const handleCreate = async () => {
+    try {
+      const token = localStorage.getItem("token")
+      const res = await fetch("http://localhost:5000/api/estructura/aulas", {
+         method: "POST",
+         headers: {
+           "Content-Type": "application/json",
+           Authorization: `Bearer ${token}`
+         },
+         body: JSON.stringify({
+           numero_aula: newClassroom.number,
+           descripcion: newClassroom.description,
+           capacidad_estudiantes: parseInt(newClassroom.capacity) || 0,
+           cantidad_mesas: parseInt(newClassroom.desks) || 0,
+           cantidad_sillas: parseInt(newClassroom.chairs) || 0,
+         })
+      })
+      if (res.ok) {
+         setIsCreateDialogOpen(false)
+         fetchAulas()
+      } else {
+         const errorData = await res.json()
+         alert(errorData.message)
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   const filteredClassrooms = classrooms.filter((classroom) => {
     const matchesSearch =
       classroom.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      classroom.grade.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      classroom.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      classroom.teacher?.toLowerCase().includes(searchTerm.toLowerCase())
+      classroom.description.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesLevel = filterLevel === "all" || classroom.level === filterLevel
     const matchesStatus = filterStatus === "all" || classroom.status === filterStatus
     return matchesSearch && matchesLevel && matchesStatus
@@ -255,7 +185,8 @@ export default function AulasPage() {
     maintenanceNeeded: classrooms.filter((c) => c.status === "mantenimiento").length,
   }
 
-  const occupancyRate = Math.round((stats.totalStudents / stats.totalCapacity) * 100)
+  const occupancyRate = stats.totalCapacity > 0 ? Math.round((stats.totalStudents / stats.totalCapacity) * 100) : 0
+
 
   return (
     <div className="space-y-6">
@@ -385,7 +316,7 @@ export default function AulasPage() {
               >
                 Cancelar
               </Button>
-              <Button onClick={() => setIsCreateDialogOpen(false)}>
+              <Button onClick={handleCreate}>
                 Registrar Aula
               </Button>
             </DialogFooter>

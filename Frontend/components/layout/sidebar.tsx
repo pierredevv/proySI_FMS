@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -45,7 +45,8 @@ interface NavItem {
   title: string
   href?: string
   icon: React.ComponentType<{ className?: string }>
-  children?: { title: string; href: string; icon: React.ComponentType<{ className?: string }> }[]
+  children?: { title: string; href: string; icon: React.ComponentType<{ className?: string }>; roles?: number[] }[]
+  roles?: number[]
 }
 
 const navItems: NavItem[] = [
@@ -53,16 +54,29 @@ const navItems: NavItem[] = [
     title: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+    roles: [1, 2, 3, 4, 5],
   },
   {
     title: "Usuarios",
     icon: Users,
+    roles: [1, 2], // 1: SuperUsuario, 2: Director
     children: [
-      { title: "Gestión de Usuarios", href: "/dashboard/usuarios", icon: UserCog },
-      { title: "Roles y Permisos", href: "/dashboard/usuarios/roles", icon: ShieldCheck },
-      { title: "Personal Docente", href: "/dashboard/usuarios/docentes", icon: GraduationCap },
+      { title: "Gestión de Usuarios", href: "/dashboard/usuarios", icon: UserCog, roles: [1] },
+      { title: "Roles y Permisos", href: "/dashboard/usuarios/roles", icon: ShieldCheck, roles: [1] },
+      { title: "Personal Docente", href: "/dashboard/usuarios/docentes", icon: GraduationCap, roles: [1, 2] },
     ],
   },
+  {
+    title: "Estructura Académica",
+    icon: School,
+    roles: [1, 2],
+    children: [
+      { title: "Gestión Académica", href: "/dashboard/gestiones", icon: CalendarCheck, roles: [1, 2] },
+      { title: "Aulas", href: "/dashboard/aulas", icon: DoorOpen, roles: [1, 2] },
+      { title: "Campos y Materias", href: "/dashboard/materias", icon: BookOpen, roles: [1, 2] },
+    ],
+  },
+  /* -- OCULTOS PARA EL CICLO 1 --
   {
     title: "Estudiantes",
     icon: School,
@@ -70,7 +84,6 @@ const navItems: NavItem[] = [
       { title: "Expedientes", href: "/dashboard/estudiantes", icon: Users },
       { title: "Inscripciones", href: "/dashboard/estudiantes/inscripciones", icon: ClipboardList },
       { title: "Tutores", href: "/dashboard/tutores", icon: UserCheck },
-      { title: "Aulas", href: "/dashboard/aulas", icon: DoorOpen },
     ],
   },
   {
@@ -93,36 +106,8 @@ const navItems: NavItem[] = [
   },
   {
     title: "Inventario",
-    icon: Package,
-    children: [
-      { title: "Materiales", href: "/dashboard/inventario", icon: Boxes },
-      { title: "Movimientos", href: "/dashboard/inventario/movimientos", icon: ArrowRightLeft },
-      { title: "Historial", href: "/dashboard/inventario/historial", icon: History },
-    ],
-  },
-  {
-    title: "Comunicación",
-    icon: Bell,
-    children: [
-      { title: "Avisos", href: "/dashboard/comunicacion", icon: Megaphone },
-      { title: "Notificaciones", href: "/dashboard/comunicacion/notificaciones", icon: Bell },
-    ],
-  },
-  {
-    title: "Entregas",
-    href: "/dashboard/entregas",
-    icon: ShieldCheck,
-  },
-  {
-    title: "Reportes",
-    href: "/dashboard/reportes",
-    icon: BarChart3,
-  },
-  {
-    title: "Configuración",
-    href: "/dashboard/configuracion",
-    icon: Settings,
-  },
+    ...
+  */
 ]
 
 interface SidebarProps {
@@ -133,6 +118,15 @@ interface SidebarProps {
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const pathname = usePathname()
   const [openItems, setOpenItems] = useState<string[]>([])
+  const [userRole, setUserRole] = useState<number | null>(null)
+  const [userName, setUserName] = useState<string>("Usuario")
+
+  useEffect(() => {
+    const role = localStorage.getItem("userRole")
+    if (role) setUserRole(parseInt(role, 10))
+    const name = localStorage.getItem("userName")
+    if (name) setUserName(name)
+  }, [])
 
   const toggleItem = (title: string) => {
     setOpenItems(prev =>
@@ -145,6 +139,24 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const isActive = (href: string) => pathname === href
   const isParentActive = (children?: { href: string }[]) =>
     children?.some(child => pathname.startsWith(child.href))
+
+  // Filter items based on user role
+  const filteredNavItems = navItems.filter(item => {
+    if (!item.roles) return true
+    if (userRole === null) return true // Wait for useEffect or just show all until resolved
+    return item.roles.includes(userRole)
+  }).map(item => {
+    if (item.children) {
+      return {
+        ...item,
+        children: item.children.filter(child => !child.roles || (userRole !== null && child.roles.includes(userRole)))
+      }
+    }
+    return item
+  }).filter(item => {
+    if (item.children && item.children.length === 0) return false;
+    return true;
+  })
 
   return (
     <aside
@@ -199,8 +211,8 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 overflow-hidden">
-                <p className="truncate text-sm font-medium">Administrador</p>
-                <p className="truncate text-xs text-sidebar-foreground/70">Director</p>
+                <p className="truncate text-sm font-medium">{userName}</p>
+                <p className="truncate text-xs text-sidebar-foreground/70">{userRole === 1 ? 'SuperUsuario' : userRole === 2 ? 'Director' : 'Personal'}</p>
               </div>
             </div>
           ) : (
@@ -216,9 +228,9 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         {/* Navigation */}
         <ScrollArea className="flex-1 px-3 py-4">
           <nav className="space-y-1">
-            {navItems.map((item) => {
+            {filteredNavItems.map((item) => {
               const ItemIcon = item.icon
-              if (item.children) {
+              if (item.children && item.children.length > 0) {
                 const isOpen = openItems.includes(item.title) || isParentActive(item.children)
                 return (
                   <Collapsible
@@ -276,7 +288,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
 
               return (
                 <Button
-                  key={item.href}
+                  key={item.title}
                   variant="ghost"
                   asChild
                   className={cn(
@@ -306,6 +318,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               "w-full justify-start gap-3 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
               isCollapsed && "justify-center px-2"
             )}
+            onClick={() => { localStorage.clear(); window.location.href = '/login'; }}
           >
             <LogOut className="h-5 w-5 shrink-0" />
             {!isCollapsed && <span className="text-sm">Cerrar Sesión</span>}
