@@ -1,0 +1,98 @@
+const pool = require('../config/db');
+const bcrypt = require('bcryptjs');
+
+const createUser = async (req, res) => {
+    const { username, password, id_rol, estado } = req.body;
+
+    if (!username || !password || !id_rol) {
+        return res.status(400).json({ message: 'Todos los campos obligatorios (username, password, id_rol) deben estar llenos' });
+    }
+
+    try {
+        const usuarioExistente = await pool.query('SELECT id_usuario FROM usuario WHERE username = $1', [username]);
+        if (usuarioExistente.rows.length > 0) {
+            return res.status.json({ message: 'El nombre de usuario ya esta en uso' });
+        }
+
+        const rolExistente = await pool.query('SELECT id_rol FROM rol WHERE id_rol = $1', [id_rol]);
+        if (rolExistente.rows.length === 0) {
+            return res.status(400).json({ message: 'El rol especificado no existe en el sistema' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const password_hash = await bcrypt.hash(password, salt);
+
+        const estadoFinal = estado !== undefined ? estado : true;
+
+        const newUser = await pool.query(
+            'INSERT INTO usuario (username, password_hash, id_rol, estado) VALUES ($1, $2, $3, $4) RETURNING id_usuario, username, id_rol, estado',
+            [username, password_hash, id_rol, estadoFinal]
+        );
+
+        res.status(201).json({
+            message: 'Usuario creado con exito',
+            user: newUser.rows[0]
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al crear el usuario', error: error.message });
+    }
+}
+
+const getUsers = async (req, res) => {
+    try {
+        const usuario = await pool.query(`
+            SELECT u.id_usuario, u.username, u.estado, u.ultimo_acceso, u.fecha_creacion, r.nombre_rol, r.id_rol
+            FROM usuario u
+            JOIN rol r ON u.id_rol = r.id_rol
+            ORDER BY u.id_usuario ASC
+            `);
+        res.json(usuario.rows);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener Usuarios', error: error.message });
+    }
+}
+
+const updateUser = async (req, res) => {
+    const { id } = req.params;
+    const { username, id_rol, estado } = req.body;
+
+    if (!username || !id_rol || estado === undefined) {
+        return res.status(400).json({ message: 'Deben enviar username, id_rol y estado para actualizar el usuario' });
+    }
+
+    try {
+
+        const usuarioExistente = await pool.query('SELECT id_usuario FROM usuario WHERE username = $1 AND id_usuario != $2', [username, id]);
+        if (usuarioExistente.rowCount.length > 0) {
+            return res.status(400).json({ message: 'El nombre de usuario ya esta en uso por otra cuenta' });
+        }
+
+        const updatedUser = await pool.query(
+            'UPDATE usuario SET username = $1, id_rol = $2, estado = $3 WHERE id_usuario = $4 RETURNING id_usuario, username, id_rol, estado',
+            [username, id_rol, estado, id]
+        );
+
+        if (updatedUser.rows.length == 0) return res.status(404).json({ message: 'Usuario no encontrado' });
+
+        res.json({ message: 'El usuario se actualizo correctamente', user: updatedUser.rows[0] });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al actualizar el usuario', error: error.message });
+    }
+}
+
+const deleteUser = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const desactivedUser = await pool.query(
+            'UPDATE usuario SET estado = false WHERE id_usuario = $1 RETURNING id_usuario, username, estado',
+            [id]);
+
+        if (desactivedUser.rows.length == 0) return res.status(404).json({ message: 'Usuario no encontrado xd' });
+
+        res.json({ message: 'Usuario desactivado correctamente', user: desactivedUser.rows[0] });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al desactivar el usuario', error: error.message });
+    }
+}
+
+module.exports = { createUser, getUsers, updateUser, deleteUser };
