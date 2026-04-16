@@ -105,8 +105,79 @@ const createGrado = async (req, res) => {
     }
 };
 
+const updateAula = async (req, res) => {
+    const { id } = req.params;
+    const { numero_aula, descripcion, cantidad_mesas, cantidad_sillas, capacidad_estudiantes } = req.body;
+
+    if (!numero_aula) {
+        return res.status(400).json({ message: 'El número de aula es obligatorio.' });
+    }
+    try {
+        const dup = await pool.query('SELECT id_aula FROM aula WHERE numero_aula = $1 AND id_aula != $2', [numero_aula, id]);
+        if (dup.rows.length > 0) {
+            return res.status(409).json({ message: `El aula "${numero_aula}" ya existe.` });
+        }
+        const updated = await pool.query(
+            'UPDATE aula SET numero_aula=$1, descripcion=$2, cantidad_mesas=$3, cantidad_sillas=$4, capacidad_estudiantes=$5 WHERE id_aula=$6 RETURNING *',
+            [numero_aula, descripcion, cantidad_mesas || 0, cantidad_sillas || 0, capacidad_estudiantes || 0, id]
+        );
+        if (updated.rows.length === 0) return res.status(404).json({ message: 'Aula no encontrada.' });
+        res.json({ message: 'Aula actualizada correctamente', aula: updated.rows[0] });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al actualizar el aula', error: error.message });
+    }
+};
+
+const updateNivel = async (req, res) => {
+    const { id } = req.params;
+    const { nombre_nivel, monto_mensualidad } = req.body;
+
+    if (!nombre_nivel) {
+        return res.status(400).json({ message: 'El nombre del nivel es obligatorio.' });
+    }
+    if (monto_mensualidad < 0) {
+        return res.status(400).json({ message: 'El monto no puede ser negativo.' });
+    }
+    try {
+        const dup = await pool.query('SELECT id_nivel FROM nivel WHERE nombre_nivel = $1 AND id_nivel != $2', [nombre_nivel, id]);
+        if (dup.rows.length > 0) {
+            return res.status(409).json({ message: `El nivel "${nombre_nivel}" ya existe.` });
+        }
+        const updated = await pool.query(
+            'UPDATE nivel SET nombre_nivel=$1, monto_mensualidad=$2 WHERE id_nivel=$3 RETURNING *',
+            [nombre_nivel, monto_mensualidad || 0, id]
+        );
+        if (updated.rows.length === 0) return res.status(404).json({ message: 'Nivel no encontrado.' });
+        res.json({ message: 'Nivel actualizado correctamente', nivel: updated.rows[0] });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al actualizar el nivel', error: error.message });
+    }
+};
+
+const updateGrado = async (req, res) => {
+    const { id } = req.params;
+    const { nombre_grado, id_nivel } = req.body;
+
+    if (!nombre_grado || !id_nivel) {
+        return res.status(400).json({ message: 'Nombre del grado y nivel son obligatorios.' });
+    }
+    try {
+        const updated = await pool.query(
+            'UPDATE grado SET nombre_grado=$1, id_nivel=$2 WHERE id_grado=$3 RETURNING *',
+            [nombre_grado, id_nivel, id]
+        );
+        if (updated.rows.length === 0) return res.status(404).json({ message: 'Grado no encontrado.' });
+        res.json({ message: 'Grado actualizado correctamente', grado: updated.rows[0] });
+    } catch (error) {
+        if (error.code === '23503') {
+            return res.status(400).json({ message: 'El nivel especificado no existe.' });
+        }
+        res.status(500).json({ message: 'Error al actualizar el grado', error: error.message });
+    }
+};
+
 module.exports = {
-    getAulas, createAula,
-    getNiveles, createNivel,
-    getGrados, createGrado
+    getAulas, createAula, updateAula,
+    getNiveles, createNivel, updateNivel,
+    getGrados, createGrado, updateGrado
 };

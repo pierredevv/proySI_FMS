@@ -72,7 +72,7 @@ const navItems: NavItem[] = [
     roles: [1, 2],
     children: [
       { title: "Gestión Académica", href: "/dashboard/gestiones", icon: CalendarCheck, roles: [1, 2] },
-      { title: "Aulas", href: "/dashboard/aulas", icon: DoorOpen, roles: [1, 2] },
+      { title: "Niveles y Aulas", href: "/dashboard/aulas", icon: DoorOpen, roles: [1, 2] },
       { title: "Campos y Materias", href: "/dashboard/materias", icon: BookOpen, roles: [1, 2] },
     ],
   },

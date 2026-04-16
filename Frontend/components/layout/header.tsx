@@ -33,19 +33,22 @@ interface HeaderProps {
 
 export function Header({ isCollapsed, onMenuClick }: HeaderProps) {
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const [notifications] = useState([
     { id: 1, title: "Nuevo pago registrado", time: "Hace 5 min", read: false },
     { id: 2, title: "Estudiante inscrito", time: "Hace 1 hora", read: false },
     { id: 3, title: "Stock bajo en materiales", time: "Hace 2 horas", read: true },
   ])
-  const isDark = theme === "dark"
 
   const [userName, setUserName] = useState("Usuario")
 
   useEffect(() => {
+    setMounted(true)
     const name = localStorage.getItem("userName")
     if (name) setUserName(name)
   }, [])
+
+  const isDark = mounted && theme === "dark"
 
   const toggleTheme = () => {
     setTheme(isDark ? "light" : "dark")
@@ -89,8 +92,11 @@ export function Header({ isCollapsed, onMenuClick }: HeaderProps) {
           size="icon"
           onClick={toggleTheme}
           className="text-muted-foreground hover:text-foreground"
+          suppressHydrationWarning
         >
-          {isDark ? (
+          {!mounted ? (
+            <Sun className="h-5 w-5 opacity-0" aria-hidden />
+          ) : isDark ? (
             <Sun className="h-5 w-5" />
           ) : (
             <Moon className="h-5 w-5" />

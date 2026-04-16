@@ -84,12 +84,12 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Username */}
               <div className="space-y-2">
-                <Label htmlFor="username">Usuario</Label>
+                <Label htmlFor="username">Usuario o Correo Electrónico</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="username"
-                    placeholder="Ingrese su usuario"
+                    placeholder="usuario o correo@ejemplo.com"
                     className="pl-10"
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}

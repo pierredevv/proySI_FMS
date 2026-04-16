@@ -25,7 +25,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { UserCog, Plus, MoreHorizontal, Edit, UserX, AlertCircle } from "lucide-react"
+import { UserCog, Plus, MoreHorizontal, Edit, UserX, AlertCircle, Mail } from "lucide-react"
 import { format } from "date-fns"
 
 export default function UsuariosPage() {
@@ -42,6 +42,7 @@ export default function UsuariosPage() {
   const [formData, setFormData] = useState({
     id: 0,
     username: "",
+    email: "",
     password: "",
     id_rol: "",
     estado: true
@@ -75,7 +76,7 @@ export default function UsuariosPage() {
     e.preventDefault()
     setFormError("")
     
-    if (!formData.username || !formData.password || !formData.id_rol) {
+    if (!formData.username || !formData.email || !formData.password || !formData.id_rol) {
       setFormError("Todos los campos marcados con * son obligatorios.")
       return
     }
@@ -90,6 +91,7 @@ export default function UsuariosPage() {
         },
         body: JSON.stringify({
           username: formData.username,
+          email: formData.email,
           password: formData.password,
           id_rol: parseInt(formData.id_rol)
         })
@@ -113,8 +115,8 @@ export default function UsuariosPage() {
     e.preventDefault()
     setFormError("")
     
-    if (!formData.username || !formData.id_rol) {
-      setFormError("Username y Rol son obligatorios.")
+    if (!formData.username || !formData.email || !formData.id_rol) {
+      setFormError("Username, Email y Rol son obligatorios.")
       return
     }
 
@@ -128,6 +130,7 @@ export default function UsuariosPage() {
         },
         body: JSON.stringify({
           username: formData.username,
+          email: formData.email,
           id_rol: parseInt(formData.id_rol),
           estado: formData.estado
         })
@@ -167,7 +170,7 @@ export default function UsuariosPage() {
   }
 
   const resetForm = () => {
-    setFormData({ id: 0, username: "", password: "", id_rol: "", estado: true })
+    setFormData({ id: 0, username: "", email: "", password: "", id_rol: "", estado: true })
     setFormError("")
   }
 
@@ -175,6 +178,7 @@ export default function UsuariosPage() {
     setFormData({
       id: user.id_usuario,
       username: user.username,
+      email: user.email || "",
       password: "", // Not editable here
       id_rol: user.id_rol.toString(),
       estado: user.estado
@@ -220,26 +224,40 @@ export default function UsuariosPage() {
               )}
               
               <div className="grid gap-2">
-                <Label htmlFor="username">Nombre de Usuario *</Label>
+                <Label htmlFor="create-username">Nombre de Usuario *</Label>
                 <Input 
-                  id="username" 
+                  id="create-username" 
                   value={formData.username}
                   onChange={(e) => setFormData({...formData, username: e.target.value})}
                   placeholder="ej. perez_j"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="password">Contraseña *</Label>
+                <Label htmlFor="create-email">Correo Electrónico *</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    id="create-email"
+                    type="email"
+                    className="pl-10"
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    placeholder="correo@ejemplo.com"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="create-password">Contraseña *</Label>
                 <Input 
-                  id="password" type="password"
+                  id="create-password" type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({...formData, password: e.target.value})}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="rol">Asignar Rol *</Label>
+                <Label htmlFor="create-rol">Asignar Rol *</Label>
                 <Select value={formData.id_rol} onValueChange={(v) => setFormData({...formData, id_rol: v})}>
-                  <SelectTrigger id="rol">
+                  <SelectTrigger id="create-rol">
                     <SelectValue placeholder="Seleccione un rol" />
                   </SelectTrigger>
                   <SelectContent>
@@ -271,14 +289,29 @@ export default function UsuariosPage() {
                 </div>
               )}
             <div className="grid gap-2">
-              <Label>Nombre de Usuario</Label>
+              <Label htmlFor="edit-username">Nombre de Usuario</Label>
               <Input 
+                id="edit-username"
                 value={formData.username}
                 onChange={(e) => setFormData({...formData, username: e.target.value})}
               />
             </div>
             <div className="grid gap-2">
-              <Label>Rol del Sistema</Label>
+              <Label htmlFor="edit-email">Correo Electrónico</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  id="edit-email"
+                  type="email"
+                  className="pl-10"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  placeholder="correo@ejemplo.com"
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-rol">Rol del Sistema</Label>
               <Select value={formData.id_rol} onValueChange={(v) => setFormData({...formData, id_rol: v})}>
                 <SelectTrigger>
                   <SelectValue />
@@ -311,9 +344,10 @@ export default function UsuariosPage() {
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead>Usuario</TableHead>
+                <TableHead className="hidden lg:table-cell">Correo</TableHead>
                 <TableHead>Rol Asignado</TableHead>
-                <TableHead>Creación</TableHead>
-                <TableHead>Último Acceso</TableHead>
+                <TableHead className="hidden md:table-cell">Creación</TableHead>
+                <TableHead className="hidden md:table-cell">Último Acceso</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
@@ -321,13 +355,13 @@ export default function UsuariosPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     Cargando usuarios...
                   </TableCell>
                 </TableRow>
               ) : usuarios.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     No hay usuarios registrados.
                   </TableCell>
                 </TableRow>
@@ -335,15 +369,18 @@ export default function UsuariosPage() {
                 usuarios.map((usr) => (
                   <TableRow key={usr.id_usuario}>
                     <TableCell className="font-medium">{usr.username}</TableCell>
+                    <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
+                      {usr.email || <span className="text-muted-foreground/50">—</span>}
+                    </TableCell>
                     <TableCell>
                       <div className="inline-flex items-center px-2 py-1 rounded bg-secondary text-secondary-foreground text-xs font-semibold">
                         {usr.nombre_rol}
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground whitespace-nowrap">
+                    <TableCell className="hidden md:table-cell text-muted-foreground whitespace-nowrap">
                       {usr.fecha_creacion ? format(new Date(usr.fecha_creacion), 'dd/MM/yyyy') : '-'}
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
+                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
                       {usr.ultimo_acceso ? format(new Date(usr.ultimo_acceso), 'dd/MM HH:mm') : 'Nunca'}
                     </TableCell>
                     <TableCell>

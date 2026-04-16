@@ -2,16 +2,18 @@ const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 
 const createUser = async (req, res) => {
-    const { username, password, id_rol, estado } = req.body;
+    const { username, password, id_rol, estado, email } = req.body;
 
-    if (!username || !password || !id_rol) {
+    if (!username || !password || !id_rol || !email) {
         return res.status(400).json({ message: 'Todos los campos obligatorios (username, password, id_rol) deben estar llenos' });
     }
 
     try {
-        const usuarioExistente = await pool.query('SELECT id_usuario FROM usuario WHERE username = $1', [username]);
+        const usuarioExistente = await pool.query('SELECT id_usuario FROM usuario WHERE username = $1 OR email = $2',
+            [username, email]
+        );
         if (usuarioExistente.rows.length > 0) {
-            return res.status.json({ message: 'El nombre de usuario ya esta en uso' });
+            return res.status(409).json({ message: 'El nombre de usuario o el correo electronico ya esta en uso' });
         }
 
         const rolExistente = await pool.query('SELECT id_rol FROM rol WHERE id_rol = $1', [id_rol]);
@@ -25,8 +27,8 @@ const createUser = async (req, res) => {
         const estadoFinal = estado !== undefined ? estado : true;
 
         const newUser = await pool.query(
-            'INSERT INTO usuario (username, password_hash, id_rol, estado) VALUES ($1, $2, $3, $4) RETURNING id_usuario, username, id_rol, estado',
-            [username, password_hash, id_rol, estadoFinal]
+            'INSERT INTO usuario (username, password_hash, id_rol, estado , email) VALUES ($1, $2, $3, $4, $5) RETURNING id_usuario, username, id_rol, estado, email',
+            [username, password_hash, id_rol, estadoFinal, email]
         );
 
         res.status(201).json({
@@ -41,7 +43,7 @@ const createUser = async (req, res) => {
 const getUsers = async (req, res) => {
     try {
         const usuario = await pool.query(`
-            SELECT u.id_usuario, u.username, u.estado, u.ultimo_acceso, u.fecha_creacion, r.nombre_rol, r.id_rol
+            SELECT u.id_usuario, u.username, u.email, u.estado, u.ultimo_acceso, u.fecha_creacion, r.nombre_rol, r.id_rol
             FROM usuario u
             JOIN rol r ON u.id_rol = r.id_rol
             ORDER BY u.id_usuario ASC
@@ -54,22 +56,22 @@ const getUsers = async (req, res) => {
 
 const updateUser = async (req, res) => {
     const { id } = req.params;
-    const { username, id_rol, estado } = req.body;
+    const { username, id_rol, estado, email } = req.body;
 
-    if (!username || !id_rol || estado === undefined) {
-        return res.status(400).json({ message: 'Deben enviar username, id_rol y estado para actualizar el usuario' });
+    if (!username || !id_rol || estado === undefined || !email) {
+        return res.status(400).json({ message: 'Deben enviar username, email, id_rol y estado para actualizar el usuario' });
     }
 
     try {
 
-        const usuarioExistente = await pool.query('SELECT id_usuario FROM usuario WHERE username = $1 AND id_usuario != $2', [username, id]);
-        if (usuarioExistente.rowCount.length > 0) {
-            return res.status(400).json({ message: 'El nombre de usuario ya esta en uso por otra cuenta' });
+        const usuarioExistente = await pool.query('SELECT id_usuario FROM usuario WHERE (username = $1 OR email = $2) AND id_usuario != $3', [username, email, id]);
+        if (usuarioExistente.rows.length > 0) {
+            return res.status(400).json({ message: 'El nombre de usuario o email ya esta en uso por otra cuenta' });
         }
 
         const updatedUser = await pool.query(
-            'UPDATE usuario SET username = $1, id_rol = $2, estado = $3 WHERE id_usuario = $4 RETURNING id_usuario, username, id_rol, estado',
-            [username, id_rol, estado, id]
+            'UPDATE usuario SET username = $1, email = $2, id_rol = $3, estado = $4 WHERE id_usuario = $5 RETURNING id_usuario, email, username, id_rol, estado',
+            [username, email, id_rol, estado, id]
         );
 
         if (updatedUser.rows.length == 0) return res.status(404).json({ message: 'Usuario no encontrado' });
