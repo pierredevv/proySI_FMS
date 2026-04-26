@@ -536,7 +536,7 @@ export default function CalificacionesPage() {
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[150px]">
+            <div className="flex-1 min-w-0">
               <label className="text-sm font-medium mb-2 block">Curso</label>
               <Select value={selectedGrade} onValueChange={setSelectedGrade}>
                 <SelectTrigger>
@@ -556,7 +556,7 @@ export default function CalificacionesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex-1 min-w-[150px]">
+            <div className="flex-1 min-w-0">
               <label className="text-sm font-medium mb-2 block">Materia</label>
               <Select value={selectedSubject} onValueChange={setSelectedSubject}>
                 <SelectTrigger>
@@ -574,7 +574,7 @@ export default function CalificacionesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex-1 min-w-[150px]">
+            <div className="flex-1 min-w-0">
               <label className="text-sm font-medium mb-2 block">Trimestre</label>
               <Select value={selectedTrimester} onValueChange={setSelectedTrimester}>
                 <SelectTrigger>

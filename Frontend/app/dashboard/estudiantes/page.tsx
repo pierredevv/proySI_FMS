@@ -209,7 +209,31 @@ export default function EstudiantesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="space-y-3 md:hidden">
+            {filteredStudents.map((student) => (
+              <div key={student.id} className="rounded-lg border p-4 space-y-2">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                      {student.name
+                        .split(" ")
+                        .slice(0, 2)
+                        .map((n) => n[0])
+                        .join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{student.name}</p>
+                    <p className="text-xs text-muted-foreground">{student.gender === "M" ? "Masculino" : "Femenino"}</p>
+                  </div>
+                </div>
+                <p className="text-sm"><span className="font-medium">CI:</span> {student.ci}</p>
+                <p className="text-sm"><span className="font-medium">Nivel / Grado:</span> {student.level} - {student.grade}</p>
+                <p className="text-sm"><span className="font-medium">Tutor:</span> {student.tutor}</p>
+              </div>
+            ))}
+          </div>
+          <div className="hidden md:block rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>

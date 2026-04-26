@@ -103,7 +103,7 @@ export default function ReportesPage() {
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap items-end gap-4">
-            <div className="flex-1 min-w-[150px]">
+            <div className="flex-1 min-w-0">
               <label className="text-sm font-medium mb-2 block">
                 Gestión Académica
               </label>
@@ -118,7 +118,7 @@ export default function ReportesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex-1 min-w-[150px]">
+            <div className="flex-1 min-w-0">
               <label className="text-sm font-medium mb-2 block">Período</label>
               <Select defaultValue="abril">
                 <SelectTrigger>
@@ -136,7 +136,7 @@ export default function ReportesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex-1 min-w-[150px]">
+            <div className="flex-1 min-w-0">
               <label className="text-sm font-medium mb-2 block">Nivel</label>
               <Select defaultValue="all">
                 <SelectTrigger>
@@ -232,7 +232,7 @@ export default function ReportesPage() {
             ].map((report, idx) => (
               <div
                 key={idx}
-                className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/30 transition-colors"
+                className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg border hover:bg-muted/30 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
@@ -248,7 +248,7 @@ export default function ReportesPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 self-end sm:self-auto">
                   <Badge variant="outline">{report.format}</Badge>
                   <Button variant="ghost" size="icon">
                     <Download className="h-4 w-4" />

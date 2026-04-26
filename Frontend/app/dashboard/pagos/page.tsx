@@ -305,7 +305,7 @@ export default function PagosPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Estudiante</Label>
                     <Select value={selectedStudent} onValueChange={setSelectedStudent}>
@@ -339,7 +339,7 @@ export default function PagosPage() {
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Monto (Bs.)</Label>
                     <Input
@@ -523,7 +523,21 @@ export default function PagosPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="space-y-3 md:hidden">
+            {filteredPayments.map((payment) => {
+              const config = statusConfig[payment.status]
+              return (
+                <div key={payment.id} className="rounded-lg border p-4 space-y-2">
+                  <p className="font-semibold">{payment.student}</p>
+                  <p className="text-sm text-muted-foreground">{payment.concept}</p>
+                  <p className="text-sm"><span className="font-medium">Monto:</span> Bs. {payment.amount}</p>
+                  <p className="text-sm"><span className="font-medium">Método:</span> {methodConfig[payment.method].label}</p>
+                  <Badge variant="outline" className={`gap-1 ${config.color}`}>{config.label}</Badge>
+                </div>
+              )
+            })}
+          </div>
+          <div className="hidden md:block rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog"
 import { CalendarCheck, Plus, AlertCircle, PlayCircle, Lock } from "lucide-react"
 import { format } from "date-fns"
+import { API_URL } from "@/lib/api"
 
 export default function GestionesPage() {
   const [gestiones, setGestiones] = useState<any[]>([])
@@ -48,7 +49,7 @@ export default function GestionesPage() {
       const token = localStorage.getItem("token")
       const headers = { Authorization: `Bearer ${token}` }
       
-      const res = await fetch("http://localhost:5000/api/gestiones", { headers })
+      const res = await fetch(`${API_URL}/api/gestiones`, { headers })
       
       if (res.ok) {
         setGestiones(await res.json())
@@ -71,7 +72,7 @@ export default function GestionesPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch("http://localhost:5000/api/gestiones", {
+      const res = await fetch(`${API_URL}/api/gestiones`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -98,7 +99,7 @@ export default function GestionesPage() {
     
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch(`http://localhost:5000/api/gestiones/${gestion.id_gestion}`, {
+      const res = await fetch(`${API_URL}/api/gestiones/${gestion.id_gestion}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -175,7 +176,7 @@ export default function GestionesPage() {
                   onChange={(e) => setFormData({...formData, anio: parseInt(e.target.value)})}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Fecha Oficial Inicial *</Label>
                   <Input 
@@ -204,6 +205,35 @@ export default function GestionesPage() {
 
       <Card>
         <CardContent className="p-0">
+          <div className="space-y-3 p-4 md:hidden">
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Cargando gestiones...</div>
+            ) : gestiones.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No hay gestiones planificadas.</div>
+            ) : (
+              gestiones.map((g) => (
+                <div key={g.id_gestion} className="rounded-lg border p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-lg">{g.anio}</p>
+                    <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold capitalize border ${getStatusBadge(g.estado)}`}>
+                      {g.estado}
+                    </div>
+                  </div>
+                  <p className="text-sm"><span className="font-medium">Inicio:</span> {new Date(g.fecha_inicio).toLocaleDateString()}</p>
+                  <p className="text-sm"><span className="font-medium">Fin:</span> {new Date(g.fecha_fin).toLocaleDateString()}</p>
+                  <div className="pt-2">
+                    {g.estado === 'planificada' && (
+                      <Button variant="outline" size="sm" onClick={() => handleChangeStatus(g, 'activa')} className="w-full">Iniciar</Button>
+                    )}
+                    {g.estado === 'activa' && (
+                      <Button variant="outline" size="sm" onClick={() => handleChangeStatus(g, 'cerrada')} className="w-full">Clausurar</Button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
@@ -274,6 +304,7 @@ export default function GestionesPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

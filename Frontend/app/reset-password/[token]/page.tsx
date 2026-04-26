@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { GraduationCap, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react"
+import { API_URL } from "@/lib/api"
+import { PASSWORD_HINT, validatePasswordStrength } from "@/lib/password-policy"
 
 export default function ResetPasswordPage() {
   const params = useParams()
@@ -36,11 +38,16 @@ export default function ResetPasswordPage() {
       setError("Las contraseñas no coinciden")
       return
     }
+    const passwordError = validatePasswordStrength(password)
+    if (passwordError) {
+      setError(passwordError)
+      return
+    }
 
     setIsLoading(true)
     
     try {
-      const response = await fetch("http://localhost:5000/api/auth/reset-password", {
+      const response = await fetch(`${API_URL}/api/auth/reset-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -93,12 +100,12 @@ export default function ResetPasswordPage() {
                 {/* Nueva Contraseña */}
                 <div className="space-y-2">
                   <Label htmlFor="password">Nueva Contraseña</Label>
+                  <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Mínimo 8 caracteres"
                       className="pl-10 pr-10"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}

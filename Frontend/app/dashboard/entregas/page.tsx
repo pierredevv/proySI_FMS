@@ -261,7 +261,7 @@ export default function EntregasPage() {
                     />
                   </div>
                   <Select value={levelFilter} onValueChange={setLevelFilter}>
-                    <SelectTrigger className="w-32">
+                    <SelectTrigger className="w-full sm:w-32">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -274,7 +274,20 @@ export default function EntregasPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
+              <div className="space-y-3 md:hidden">
+                {filteredStudents.map((student) => {
+                  const config = statusConfig[student.status]
+                  return (
+                    <div key={student.id} className="rounded-lg border p-4 space-y-2">
+                      <p className="font-medium">{student.name}</p>
+                      <p className="text-sm text-muted-foreground">{student.grade}</p>
+                      <p className="text-sm"><span className="font-medium">Hora:</span> {student.deliveredTime || student.scheduledTime}</p>
+                      <Badge variant="secondary" className={`gap-1 ${config.color}`}>{config.label}</Badge>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="hidden md:block rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>

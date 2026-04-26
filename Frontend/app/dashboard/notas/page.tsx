@@ -195,7 +195,7 @@ export default function NotasPage() {
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[150px]">
+            <div className="flex-1 min-w-0">
               <label className="text-sm font-medium mb-2 block">Curso</label>
               <Select value={selectedGrade} onValueChange={setSelectedGrade}>
                 <SelectTrigger>
@@ -215,7 +215,7 @@ export default function NotasPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex-1 min-w-[150px]">
+            <div className="flex-1 min-w-0">
               <label className="text-sm font-medium mb-2 block">Materia</label>
               <Select value={selectedSubject} onValueChange={setSelectedSubject}>
                 <SelectTrigger>
@@ -233,7 +233,7 @@ export default function NotasPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex-1 min-w-[150px]">
+            <div className="flex-1 min-w-0">
               <label className="text-sm font-medium mb-2 block">Trimestre</label>
               <Select value={selectedTrimester} onValueChange={setSelectedTrimester}>
                 <SelectTrigger>
@@ -316,7 +316,21 @@ export default function NotasPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="space-y-3 md:hidden">
+            {studentsWithTotal.map((student) => (
+              <div key={student.id} className="rounded-lg border p-4 space-y-2">
+                <p className="font-medium">{student.name}</p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <Input type="number" min="0" max="100" defaultValue={student.ser ?? ""} placeholder="Ser" />
+                  <Input type="number" min="0" max="100" defaultValue={student.saber ?? ""} placeholder="Saber" />
+                  <Input type="number" min="0" max="100" defaultValue={student.hacer ?? ""} placeholder="Hacer" />
+                  <Input type="number" min="0" max="100" defaultValue={student.autoevaluacion ?? ""} placeholder="Auto" />
+                </div>
+                <p className={`font-bold ${getGradeColor(student.total)}`}>Total: {student.total ?? "-"}</p>
+              </div>
+            ))}
+          </div>
+          <div className="hidden md:block rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>

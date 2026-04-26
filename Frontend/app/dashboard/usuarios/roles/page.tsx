@@ -27,6 +27,7 @@ import {
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { Shield, Plus, Trash2, ShieldCheck, AlertCircle } from "lucide-react"
+import { API_URL } from "@/lib/api"
 
 export default function RolesPage() {
   const [roles, setRoles] = useState<any[]>([])
@@ -50,8 +51,8 @@ export default function RolesPage() {
       const token = localStorage.getItem("token")
       const headers = { Authorization: `Bearer ${token}` }
       
-      const resRoles = await fetch("http://localhost:5000/api/roles", { headers })
-      const resPermisos = await fetch("http://localhost:5000/api/roles/permisos", { headers })
+      const resRoles = await fetch(`${API_URL}/api/roles`, { headers })
+      const resPermisos = await fetch(`${API_URL}/api/roles/permisos`, { headers })
       
       if (resRoles.ok && resPermisos.ok) {
         setRoles(await resRoles.json())
@@ -75,7 +76,7 @@ export default function RolesPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch("http://localhost:5000/api/roles", {
+      const res = await fetch(`${API_URL}/api/roles`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -109,7 +110,7 @@ export default function RolesPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch(`http://localhost:5000/api/roles/${id}`, {
+      const res = await fetch(`${API_URL}/api/roles/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -232,6 +233,32 @@ export default function RolesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
+          <div className="space-y-3 p-4 md:hidden">
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Cargando roles...</div>
+            ) : roles.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No hay roles configurados.</div>
+            ) : (
+              roles.map((rol) => (
+                <div key={rol.id_rol} className="rounded-lg border p-4 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold">{rol.nombre_rol}</p>
+                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${rol.estado ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
+                      {rol.estado ? 'Activo' : 'Inactivo'}
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{rol.descripcion || "-"}</p>
+                  <p className="text-sm"><span className="font-medium">Permisos:</span> {rol.cantidad_permisos}</p>
+                  {rol.id_rol !== 1 && (
+                    <Button variant="destructive" size="sm" onClick={() => handleDeleteRole(rol.id_rol)} className="w-full">
+                      Eliminar
+                    </Button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
@@ -291,6 +318,7 @@ export default function RolesPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

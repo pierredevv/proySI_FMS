@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { GraduationCap, Plus, AlertCircle, Mail, FileText, Edit, MoreHorizontal, UserPlus, CheckCircle2 } from "lucide-react"
+import { API_URL } from "@/lib/api"
+import { PASSWORD_HINT, validatePasswordStrength } from "@/lib/password-policy"
 
 export default function DocentesPage() {
   const [profesores, setProfesores] = useState<any[]>([])
@@ -62,7 +64,7 @@ export default function DocentesPage() {
     setIsLoading(true)
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch("http://localhost:5000/api/profesores", {
+      const res = await fetch(`${API_URL}/api/profesores`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (res.ok) setProfesores(await res.json())
@@ -85,9 +87,16 @@ export default function DocentesPage() {
       setFormError("Para crear cuenta debe ingresar usuario, contraseña y correo electrónico.")
       return
     }
+    if (formData.crear_cuenta) {
+      const passwordError = validatePasswordStrength(formData.password)
+      if (passwordError) {
+        setFormError(passwordError)
+        return
+      }
+    }
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch("http://localhost:5000/api/profesores", {
+      const res = await fetch(`${API_URL}/api/profesores`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(formData)
@@ -110,7 +119,7 @@ export default function DocentesPage() {
     }
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch(`http://localhost:5000/api/profesores/${editData.id_profesor}`, {
+      const res = await fetch(`${API_URL}/api/profesores/${editData.id_profesor}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -134,9 +143,14 @@ export default function DocentesPage() {
       setLinkError("Usuario, contraseña y correo electrónico son obligatorios.")
       return
     }
+    const passwordError = validatePasswordStrength(linkData.password)
+    if (passwordError) {
+      setLinkError(passwordError)
+      return
+    }
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch(`http://localhost:5000/api/profesores/${linkData.id_profesor}/cuenta`, {
+      const res = await fetch(`${API_URL}/api/profesores/${linkData.id_profesor}/cuenta`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ username: linkData.username, password: linkData.password, email: linkData.email })
@@ -207,7 +221,7 @@ export default function DocentesPage() {
                   <AlertCircle className="h-4 w-4" /> {formError}
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nombres *</Label>
                   <Input value={formData.nombre} onChange={(e) => setFormData({...formData, nombre: e.target.value})} />
@@ -217,7 +231,7 @@ export default function DocentesPage() {
                   <Input value={formData.apellido} onChange={(e) => setFormData({...formData, apellido: e.target.value})} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Cédula de Identidad *</Label>
                   <Input value={formData.ci} onChange={(e) => setFormData({...formData, ci: e.target.value})} />
@@ -245,13 +259,14 @@ export default function DocentesPage() {
               </div>
               {formData.crear_cuenta && (
                 <div className="grid gap-4 bg-muted/30 p-4 border rounded-lg animate-in fade-in slide-in-from-top-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Usuario *</Label>
                       <Input value={formData.username} onChange={(e) => setFormData({...formData, username: e.target.value})} placeholder="ej. jperez" />
                     </div>
                     <div className="space-y-2">
                       <Label>Contraseña provisional *</Label>
+                      <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
                       <Input type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
                     </div>
                   </div>
@@ -286,7 +301,7 @@ export default function DocentesPage() {
                 <AlertCircle className="h-4 w-4" /> {editError}
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Nombres *</Label>
                 <Input value={editData.nombre} onChange={(e) => setEditData({...editData, nombre: e.target.value})} />
@@ -296,7 +311,7 @@ export default function DocentesPage() {
                 <Input value={editData.apellido} onChange={(e) => setEditData({...editData, apellido: e.target.value})} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Cédula de Identidad *</Label>
                 <Input value={editData.ci} onChange={(e) => setEditData({...editData, ci: e.target.value})} />
@@ -373,6 +388,7 @@ export default function DocentesPage() {
               </div>
               <div className="space-y-2">
                 <Label>Contraseña provisional *</Label>
+                <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
                 <Input
                   type="password"
                   value={linkData.password}
@@ -394,6 +410,31 @@ export default function DocentesPage() {
       {/* ── TABLA ── */}
       <Card>
         <CardContent className="p-0">
+          <div className="space-y-3 p-4 md:hidden">
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Cargando docentes...</div>
+            ) : profesores.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No hay docentes registrados.</div>
+            ) : (
+              profesores.map((prof) => (
+                <div key={prof.id_profesor} className="rounded-lg border p-4 space-y-2">
+                  <p className="font-semibold">{prof.nombre} {prof.apellido}</p>
+                  <p className="text-sm"><span className="font-medium">CI:</span> {prof.ci}</p>
+                  <p className="text-sm text-muted-foreground">{prof.profesion || "-"}</p>
+                  <p className="text-sm">
+                    <span className="font-medium">Cuenta:</span> {prof.usuario_activo !== null ? prof.username : "Sin cuenta"}
+                  </p>
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" size="sm" onClick={() => openEditModal(prof)} className="flex-1">Editar</Button>
+                    {prof.usuario_activo === null && (
+                      <Button size="sm" onClick={() => openLinkModal(prof)} className="flex-1">Asignar Cuenta</Button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
@@ -481,6 +522,7 @@ export default function DocentesPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

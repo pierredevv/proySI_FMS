@@ -19,8 +19,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import {
   School, Plus, AlertCircle, Edit, MoreHorizontal, DoorOpen, Layers, BookOpen, DollarSign,
 } from "lucide-react"
+import { API_URL } from "@/lib/api"
 
-const API = "http://localhost:5000/api/estructura"
+const API = `${API_URL}/api/estructura`
 
 function getHeaders() {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : ""
@@ -142,6 +143,25 @@ function NivelesTab() {
 
       <Card>
         <CardContent className="p-0">
+          <div className="space-y-3 p-4 md:hidden">
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Cargando...</div>
+            ) : niveles.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No hay niveles registrados.</div>
+            ) : (
+              niveles.map((n) => (
+                <div key={n.id_nivel} className="rounded-lg border p-4 space-y-2">
+                  <p className="font-semibold">{n.nombre_nivel}</p>
+                  <p className="text-sm text-muted-foreground">ID: {n.id_nivel}</p>
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400">Bs. {parseFloat(n.monto_mensualidad || 0).toFixed(2)}</p>
+                  <Button variant="outline" size="sm" onClick={() => { setEditForm({ id: n.id_nivel, nombre_nivel: n.nombre_nivel, monto_mensualidad: String(n.monto_mensualidad || 0) }); setFormError(""); setIsEditOpen(true) }} className="w-full">
+                    Editar
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
@@ -179,6 +199,7 @@ function NivelesTab() {
               ))}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -304,6 +325,25 @@ function GradosTab() {
 
       <Card>
         <CardContent className="p-0">
+          <div className="space-y-3 p-4 md:hidden">
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Cargando...</div>
+            ) : grados.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No hay grados registrados.</div>
+            ) : (
+              grados.map((g) => (
+                <div key={g.id_grado} className="rounded-lg border p-4 space-y-2">
+                  <p className="font-semibold">{g.nombre_grado}</p>
+                  <p className="text-sm text-muted-foreground">ID: {g.id_grado}</p>
+                  <p className="text-sm"><span className="font-medium">Nivel:</span> {g.nombre_nivel}</p>
+                  <Button variant="outline" size="sm" onClick={() => { setEditForm({ id: g.id_grado, nombre_grado: g.nombre_grado, id_nivel: String(g.id_nivel) }); setFormError(""); setIsEditOpen(true) }} className="w-full">
+                    Editar
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
@@ -341,6 +381,7 @@ function GradosTab() {
               ))}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -407,7 +448,7 @@ function AulasTab() {
 
   const aulaFormFields = (data: any, setter: (d: any) => void) => (
     <>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Número de Aula *</Label>
           <Input value={data.numero_aula} onChange={(e) => setter({ ...data, numero_aula: e.target.value })} placeholder="Ej. A-101" />
@@ -417,7 +458,7 @@ function AulasTab() {
           <Input type="number" min="0" value={data.capacidad_estudiantes} onChange={(e) => setter({ ...data, capacidad_estudiantes: e.target.value })} placeholder="0" />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Cantidad de Mesas</Label>
           <Input type="number" min="0" value={data.cantidad_mesas} onChange={(e) => setter({ ...data, cantidad_mesas: e.target.value })} placeholder="0" />
@@ -475,6 +516,40 @@ function AulasTab() {
 
       <Card>
         <CardContent className="p-0">
+          <div className="space-y-3 p-4 md:hidden">
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Cargando...</div>
+            ) : aulas.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No hay aulas registradas.</div>
+            ) : (
+              aulas.map((a) => (
+                <div key={a.id_aula} className="rounded-lg border p-4 space-y-2">
+                  <p className="font-semibold">{a.numero_aula}</p>
+                  <p className="text-sm text-muted-foreground">{a.descripcion || "—"}</p>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="rounded border px-2 py-1 text-center">Cap: {a.capacidad_estudiantes}</div>
+                    <div className="rounded border px-2 py-1 text-center">Mesas: {a.cantidad_mesas}</div>
+                    <div className="rounded border px-2 py-1 text-center">Sillas: {a.cantidad_sillas}</div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEditForm({
+                        id: a.id_aula, numero_aula: a.numero_aula, descripcion: a.descripcion || "",
+                        cantidad_mesas: String(a.cantidad_mesas || 0), cantidad_sillas: String(a.cantidad_sillas || 0),
+                        capacidad_estudiantes: String(a.capacidad_estudiantes || 0)
+                      }); setFormError(""); setIsEditOpen(true)
+                    }}
+                    className="w-full"
+                  >
+                    Editar
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
@@ -522,6 +597,7 @@ function AulasTab() {
               ))}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -531,7 +607,7 @@ function AulasTab() {
 // ─── MAIN PAGE ───────────────────────────────────────────────
 export default function EstructuraPage() {
   return (
-    <div className="p-6 lg:p-8 space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight inline-flex items-center gap-2">
           <School className="h-8 w-8 text-primary" />

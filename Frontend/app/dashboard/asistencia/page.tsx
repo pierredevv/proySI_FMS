@@ -243,7 +243,7 @@ export default function AsistenciaPage() {
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
             {/* Course Selector */}
-            <div className="flex-1 min-w-[150px]">
+            <div className="flex-1 min-w-0">
               <label className="text-sm font-medium mb-2 block">Curso</label>
               <Select value={selectedGrade} onValueChange={setSelectedGrade}>
                 <SelectTrigger>
@@ -265,7 +265,7 @@ export default function AsistenciaPage() {
             </div>
 
             {/* Date Navigation */}
-            <div className="flex-1 min-w-[250px]">
+            <div className="flex-1 min-w-0">
               <label className="text-sm font-medium mb-2 block">Fecha</label>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="icon" onClick={goToPreviousDay}>
@@ -506,7 +506,34 @@ export default function AsistenciaPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="space-y-3 md:hidden">
+            {students.map((student, index) => (
+              <div key={student.id} className="rounded-lg border p-4 space-y-2">
+                <p className="font-medium">{index + 1}. {student.name}</p>
+                <p className="text-sm text-muted-foreground">CI: {student.ci}</p>
+                <div className="flex gap-1">
+                  {(Object.entries(statusConfig) as [Exclude<AttendanceStatus, null>, (typeof statusConfig)[keyof typeof statusConfig]][]).map(([status, config]) => {
+                    const Icon = config.icon
+                    const isActive = student.attendance === status
+                    return (
+                      <Button
+                        key={status}
+                        variant="outline"
+                        size="sm"
+                        className={cn("h-8 w-8 p-0 border-2", isActive && config.bg)}
+                        onClick={() => handleAttendanceChange(student.id, status)}
+                        title={config.label}
+                      >
+                        <Icon className={cn("h-4 w-4", isActive ? config.color : "text-muted-foreground")} />
+                      </Button>
+                    )
+                  })}
+                </div>
+                <p className="text-sm text-muted-foreground">{student.observation || "-"}</p>
+              </div>
+            ))}
+          </div>
+          <div className="hidden md:block rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>

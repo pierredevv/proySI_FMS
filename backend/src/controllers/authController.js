@@ -3,9 +3,23 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const transporter = require('../config/mailer');
+const { validatePasswordStrength } = require('../utils/passwordPolicy');
+const { isLimited, clearLimit } = require('../utils/rateLimiter');
+
+const LOGIN_LIMIT_WINDOW_MS = 60 * 1000;
+const FORGOT_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const RESET_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
 const login = async (req, res) => {
     const { username, password } = req.body;
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown-ip';
+    const loginKey = `login:${ip}:${(username || '').toLowerCase()}`;
+
+    const loginLimit = isLimited(loginKey, 5, LOGIN_LIMIT_WINDOW_MS);
+    if (loginLimit.limited) {
+        const retryAfter = Math.ceil(loginLimit.retryAfterMs / 1000);
+        return res.status(429).json({ message: `Demasiados intentos de inicio de sesión. Intenta de nuevo en ${retryAfter} segundos.` });
+    }
 
     try {
         const userResult = await pool.query('SELECT * FROM usuario WHERE username = $1 OR email = $1', [username]);
@@ -47,6 +61,7 @@ const login = async (req, res) => {
             'UPDATE usuario SET intentos_fallidos = 0, bloqueado_hasta = NULL, ultimo_acceso = NOW() WHERE id_usuario = $1',
             [user.id_usuario]
         );
+        clearLimit(loginKey);
 
         const token = jwt.sign(
             { id: user.id_usuario, role: user.id_rol },
@@ -63,6 +78,14 @@ const login = async (req, res) => {
 
 const forgotPassword = async (req, res) => {
     const { email } = req.body;
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown-ip';
+    const forgotKey = `forgot:${ip}:${(email || '').toLowerCase()}`;
+    const forgotLimit = isLimited(forgotKey, 3, FORGOT_LIMIT_WINDOW_MS);
+
+    if (forgotLimit.limited) {
+        const retryAfter = Math.ceil(forgotLimit.retryAfterMs / 60000);
+        return res.status(429).json({ message: `Demasiadas solicitudes de recuperación. Intenta de nuevo en ${retryAfter} minuto(s).` });
+    }
 
     try {
         const userResult = await pool.query(
@@ -100,6 +123,19 @@ const forgotPassword = async (req, res) => {
 
 const resetPassword = async (req, res) => {
     const { token, newPassword } = req.body;
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown-ip';
+    const resetKey = `reset:${ip}:${token || 'sin-token'}`;
+    const resetLimit = isLimited(resetKey, 5, RESET_LIMIT_WINDOW_MS);
+
+    if (resetLimit.limited) {
+        const retryAfter = Math.ceil(resetLimit.retryAfterMs / 60_000);
+        return res.status(429).json({ message: `Demasiados intentos de cambio de contraseña. Intenta de nuevo en ${retryAfter} minuto(s).` });
+    }
+
+    const passwordValidation = validatePasswordStrength(newPassword);
+    if (!passwordValidation.isValid) {
+        return res.status(400).json({ message: passwordValidation.message });
+    }
 
     try {
         const userResult = await pool.query(
@@ -120,6 +156,7 @@ const resetPassword = async (req, res) => {
             'UPDATE usuario SET password_hash = $1, reset_token = NULL, reset_token_expira = NULL WHERE id_usuario = $2',
             [password_hash, user.id_usuario]
         );
+        clearLimit(resetKey);
 
         res.json({ message: 'Contraseña actualizada con éxito.' });
     } catch (error) {

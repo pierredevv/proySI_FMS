@@ -27,6 +27,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { BookOpen, Plus, AlertCircle, Bookmark } from "lucide-react"
+import { API_URL } from "@/lib/api"
 
 export default function MateriasPage() {
   const [materias, setMaterias] = useState<any[]>([])
@@ -58,8 +59,8 @@ export default function MateriasPage() {
       const token = localStorage.getItem("token")
       const headers = { Authorization: `Bearer ${token}` }
       
-      const resCampos = await fetch("http://localhost:5000/api/materias/campos", { headers })
-      const resMaterias = await fetch("http://localhost:5000/api/materias", { headers })
+      const resCampos = await fetch(`${API_URL}/api/materias/campos`, { headers })
+      const resMaterias = await fetch(`${API_URL}/api/materias`, { headers })
       
       if (resCampos.ok && resMaterias.ok) {
         setCampos(await resCampos.json())
@@ -83,7 +84,7 @@ export default function MateriasPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch("http://localhost:5000/api/materias/campos", {
+      const res = await fetch(`${API_URL}/api/materias/campos`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -117,7 +118,7 @@ export default function MateriasPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch("http://localhost:5000/api/materias", {
+      const res = await fetch(`${API_URL}/api/materias`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -158,7 +159,7 @@ export default function MateriasPage() {
       </div>
 
       <Tabs defaultValue="materias" className="w-full">
-        <TabsList className="grid w-[400px] grid-cols-2 mb-4">
+        <TabsList className="grid w-full max-w-md grid-cols-2 mb-4">
           <TabsTrigger value="materias">Materias / Asignaturas</TabsTrigger>
           <TabsTrigger value="campos">Campos Curriculares</TabsTrigger>
         </TabsList>
@@ -229,6 +230,25 @@ export default function MateriasPage() {
 
           <Card>
             <CardContent className="p-0">
+              <div className="space-y-3 p-4 md:hidden">
+                {isLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">Cargando materias...</div>
+                ) : materias.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No hay materias creadas.</div>
+                ) : (
+                  materias.map((m) => (
+                    <div key={m.id_materia} className="rounded-lg border p-4 space-y-2">
+                      <p className="font-semibold text-primary">{m.nombre_materia}</p>
+                      <p className="text-sm"><span className="font-medium">Campo:</span> {m.nombre_campo}</p>
+                      <p className="text-sm text-muted-foreground">{m.descripcion || "-"}</p>
+                      <span className={`inline-flex text-xs px-2 py-1 rounded-full ${m.aplica_primaria ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" : "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"}`}>
+                        {m.aplica_primaria ? "Ambos Niveles" : "Solo Secundaria"}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
@@ -275,6 +295,7 @@ export default function MateriasPage() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

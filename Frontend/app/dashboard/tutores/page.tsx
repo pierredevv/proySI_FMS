@@ -250,7 +250,7 @@ export default function TutoresPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nombre</Label>
                   <Input
@@ -274,7 +274,7 @@ export default function TutoresPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="ci">Carnet de Identidad</Label>
                   <Input
@@ -304,7 +304,7 @@ export default function TutoresPage() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="relationship">Parentesco</Label>
                   <Select
@@ -408,7 +408,7 @@ export default function TutoresPage() {
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[250px]">
+            <div className="flex-1 min-w-0">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -419,7 +419,7 @@ export default function TutoresPage() {
                 />
               </div>
             </div>
-            <div className="w-[180px]">
+            <div className="w-full sm:w-[180px]">
               <Select
                 value={filterRelationship}
                 onValueChange={setFilterRelationship}
@@ -450,7 +450,20 @@ export default function TutoresPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="space-y-3 md:hidden">
+            {filteredTutors.map((tutor) => (
+              <div key={tutor.id} className="rounded-lg border p-4 space-y-2">
+                <p className="font-semibold">{tutor.name} {tutor.lastName}</p>
+                <p className="text-sm"><span className="font-medium">CI:</span> {tutor.ci}</p>
+                <p className="text-sm"><span className="font-medium">Parentesco:</span> {tutor.relationship}</p>
+                <p className="text-sm text-muted-foreground">{tutor.phone} - {tutor.email}</p>
+                <Badge variant={tutor.isAuthorizedPickup ? "default" : "secondary"}>
+                  {tutor.isAuthorizedPickup ? "Autorizado" : "No autorizado"}
+                </Badge>
+              </div>
+            ))}
+          </div>
+          <div className="hidden md:block rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>

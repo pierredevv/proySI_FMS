@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { logoutSession } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -112,10 +113,13 @@ const navItems: NavItem[] = [
 
 interface SidebarProps {
   isCollapsed: boolean
+  isMobile: boolean
+  isMobileOpen: boolean
   onToggle: () => void
+  onCloseMobile: () => void
 }
 
-export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
+export function Sidebar({ isCollapsed, isMobile, isMobileOpen, onToggle, onCloseMobile }: SidebarProps) {
   const pathname = usePathname()
   const [openItems, setOpenItems] = useState<string[]>([])
   const [userRole, setUserRole] = useState<number | null>(null)
@@ -158,13 +162,31 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     return true;
   })
 
+  const handleNavClick = () => {
+    if (isMobile) {
+      onCloseMobile()
+    }
+  }
+
   return (
-    <aside
-      className={cn(
-        "fixed left-0 top-0 z-40 h-screen bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-[72px]" : "w-64"
+    <>
+      {isMobile && isMobileOpen && (
+        <button
+          aria-label="Cerrar menú lateral"
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={onCloseMobile}
+        />
       )}
-    >
+      <aside
+        className={cn(
+          "fixed left-0 top-0 z-50 h-screen bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out",
+          isMobile
+            ? cn("w-72 max-w-[85vw]", isMobileOpen ? "translate-x-0" : "-translate-x-full")
+            : isCollapsed
+              ? "w-[72px]"
+              : "w-64"
+        )}
+      >
       <div className="flex h-full flex-col">
         {/* Header */}
         <div className={cn(
@@ -190,10 +212,10 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             onClick={onToggle}
             className={cn(
               "h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent",
-              isCollapsed && "absolute -right-3 top-6 z-50 rounded-full bg-sidebar-primary text-sidebar-primary-foreground shadow-md hover:bg-sidebar-primary/90"
+              !isMobile && isCollapsed && "absolute -right-3 top-6 z-50 rounded-full bg-sidebar-primary text-sidebar-primary-foreground shadow-md hover:bg-sidebar-primary/90"
             )}
           >
-            <ChevronLeft className={cn("h-4 w-4 transition-transform", isCollapsed && "rotate-180")} />
+            <ChevronLeft className={cn("h-4 w-4 transition-transform", !isMobile && isCollapsed && "rotate-180")} />
           </Button>
         </div>
 
@@ -273,7 +295,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                               isActive(child.href) && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
                             )}
                           >
-                            <Link href={child.href}>
+                            <Link href={child.href} onClick={handleNavClick}>
                               <ChildIcon className="h-4 w-4 shrink-0" />
                               <span className="text-sm">{child.title}</span>
                             </Link>
@@ -297,7 +319,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                     isCollapsed && "justify-center px-2"
                   )}
                 >
-                  <Link href={item.href!}>
+                  <Link href={item.href!} onClick={handleNavClick}>
                     <ItemIcon className="h-5 w-5 shrink-0" />
                     {!isCollapsed && <span className="text-sm">{item.title}</span>}
                   </Link>
@@ -318,13 +340,14 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               "w-full justify-start gap-3 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
               isCollapsed && "justify-center px-2"
             )}
-            onClick={() => { localStorage.clear(); window.location.href = '/login'; }}
+            onClick={logoutSession}
           >
             <LogOut className="h-5 w-5 shrink-0" />
             {!isCollapsed && <span className="text-sm">Cerrar Sesión</span>}
           </Button>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   )
 }

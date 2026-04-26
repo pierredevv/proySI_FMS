@@ -1,11 +1,17 @@
 const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
+const { validatePasswordStrength } = require('../utils/passwordPolicy');
 
 const createUser = async (req, res) => {
     const { username, password, id_rol, estado, email } = req.body;
 
     if (!username || !password || !id_rol || !email) {
         return res.status(400).json({ message: 'Todos los campos obligatorios (username, password, id_rol) deben estar llenos' });
+    }
+
+    const passwordValidation = validatePasswordStrength(password);
+    if (!passwordValidation.isValid) {
+        return res.status(400).json({ message: passwordValidation.message });
     }
 
     try {

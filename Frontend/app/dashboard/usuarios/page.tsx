@@ -27,6 +27,8 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { UserCog, Plus, MoreHorizontal, Edit, UserX, AlertCircle, Mail } from "lucide-react"
 import { format } from "date-fns"
+import { API_URL } from "@/lib/api"
+import { PASSWORD_HINT, validatePasswordStrength } from "@/lib/password-policy"
 
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<any[]>([])
@@ -58,8 +60,8 @@ export default function UsuariosPage() {
       const token = localStorage.getItem("token")
       const headers = { Authorization: `Bearer ${token}` }
       
-      const resUsers = await fetch("http://localhost:5000/api/users", { headers })
-      const resRoles = await fetch("http://localhost:5000/api/roles", { headers })
+      const resUsers = await fetch(`${API_URL}/api/users`, { headers })
+      const resRoles = await fetch(`${API_URL}/api/roles`, { headers })
       
       if (resUsers.ok && resRoles.ok) {
         setUsuarios(await resUsers.json())
@@ -80,10 +82,15 @@ export default function UsuariosPage() {
       setFormError("Todos los campos marcados con * son obligatorios.")
       return
     }
+    const passwordError = validatePasswordStrength(formData.password)
+    if (passwordError) {
+      setFormError(passwordError)
+      return
+    }
 
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch("http://localhost:5000/api/users", {
+      const res = await fetch(`${API_URL}/api/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -122,7 +129,7 @@ export default function UsuariosPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch(`http://localhost:5000/api/users/${formData.id}`, {
+      const res = await fetch(`${API_URL}/api/users/${formData.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -154,7 +161,7 @@ export default function UsuariosPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch(`http://localhost:5000/api/users/${id}`, {
+      const res = await fetch(`${API_URL}/api/users/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -248,6 +255,7 @@ export default function UsuariosPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="create-password">Contraseña *</Label>
+                <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
                 <Input 
                   id="create-password" type="password"
                   value={formData.password}
@@ -340,6 +348,35 @@ export default function UsuariosPage() {
 
       <Card>
         <CardContent className="p-0">
+          <div className="space-y-3 p-4 md:hidden">
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Cargando usuarios...</div>
+            ) : usuarios.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No hay usuarios registrados.</div>
+            ) : (
+              usuarios.map((usr) => (
+                <div key={usr.id_usuario} className="rounded-lg border p-4 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold truncate">{usr.username}</p>
+                    <div className={`inline-flex px-2 py-1 rounded text-xs font-medium border ${usr.estado ? 'border-green-200 text-green-700 bg-green-50 dark:bg-green-900/20' : 'border-red-200 text-red-700 bg-red-50 dark:bg-red-900/20'}`}>
+                      {usr.estado ? 'Activo' : 'Inactivo'}
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground break-all">{usr.email || "—"}</p>
+                  <p className="text-sm"><span className="font-medium">Rol:</span> {usr.nombre_rol}</p>
+                  <div className="flex gap-2 pt-2">
+                    {usr.id_rol !== 1 && (
+                      <>
+                        <Button variant="outline" size="sm" onClick={() => openEditModal(usr)} className="flex-1">Editar</Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDeactivate(usr.id_usuario)} className="flex-1">Desactivar</Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
@@ -415,6 +452,7 @@ export default function UsuariosPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
+const { validatePasswordStrength } = require('../utils/passwordPolicy');
 
 const getProfesores = async (req, res) => {
     try {
@@ -41,6 +42,10 @@ const createProfesor = async (req, res) => {
         if (crear_cuenta) {
             if (!email) {
                 throw new Error('El correo electronico es obligatorio para crear la ceunta de usuario');
+            }
+            const passwordValidation = validatePasswordStrength(password);
+            if (!passwordValidation.isValid) {
+                throw new Error(passwordValidation.message);
             }
 
             const userCheck = await client.query('SELECT id_usuario FROM usuario WHERE username = $1 OR email = $2', [username, email]);
@@ -123,6 +128,11 @@ const linkCuentaProfesor = async (req, res) => {
 
     if (!username || !password || !email) {
         return res.status(400).json({ message: 'Username, contraseña y correo electrónico son obligatorios.' });
+    }
+
+    const passwordValidation = validatePasswordStrength(password);
+    if (!passwordValidation.isValid) {
+        return res.status(400).json({ message: passwordValidation.message });
     }
 
     const client = await pool.connect();

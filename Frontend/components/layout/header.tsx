@@ -25,13 +25,15 @@ import {
   Menu,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { logoutSession } from "@/lib/auth"
 
 interface HeaderProps {
   isCollapsed: boolean
+  isMobile: boolean
   onMenuClick: () => void
 }
 
-export function Header({ isCollapsed, onMenuClick }: HeaderProps) {
+export function Header({ isCollapsed, isMobile, onMenuClick }: HeaderProps) {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [notifications] = useState([
@@ -60,7 +62,7 @@ export function Header({ isCollapsed, onMenuClick }: HeaderProps) {
     <header
       className={cn(
         "fixed top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-300",
-        isCollapsed ? "left-[72px]" : "left-64",
+        isMobile ? "left-0" : isCollapsed ? "md:left-[72px]" : "md:left-64",
         "right-0"
       )}
     >
@@ -75,12 +77,12 @@ export function Header({ isCollapsed, onMenuClick }: HeaderProps) {
         </Button>
         
         {/* Search */}
-        <div className="relative hidden md:block">
+        <div className="relative hidden lg:block">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Buscar estudiantes, pagos, reportes..."
-            className="w-72 pl-9 lg:w-96"
+            className="w-60 pl-9 xl:w-80"
           />
         </div>
       </div>
@@ -189,7 +191,7 @@ export function Header({ isCollapsed, onMenuClick }: HeaderProps) {
               Configuración
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={() => { localStorage.clear(); window.location.href = '/login'; }}>
+            <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={logoutSession}>
               <LogOut className="mr-2 h-4 w-4" />
               Cerrar Sesión
             </DropdownMenuItem>
