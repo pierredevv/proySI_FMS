@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   StatCard,
@@ -7,16 +7,11 @@ import {
   PaymentChart,
   StudentsByLevel,
   UpcomingDeliveries,
-} from "@/components/dashboard"
-import {
-  Bell,
-  UserCheck,
-  TrendingUp,
-  AlertCircle,
-} from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
+} from "@/components/dashboard";
+import { Bell, UserCheck, TrendingUp, AlertCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 export default function DashboardPage() {
   return (
@@ -212,5 +207,5 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

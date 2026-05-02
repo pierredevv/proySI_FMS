@@ -1,36 +1,42 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { GraduationCap, Eye, EyeOff, Lock, User } from "lucide-react"
-import { API_URL } from "@/lib/api"
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { GraduationCap, Eye, EyeOff, Lock, User } from "lucide-react";
+import { API_URL } from "@/lib/api";
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
     password: "",
-  })
-  const [error, setError] = useState("")
+  });
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    
+    e.preventDefault();
+    setError("");
+
     if (!formData.username || !formData.password) {
-      setError("Por favor complete todos los campos")
-      return
+      setError("Por favor complete todos los campos");
+      return;
     }
 
-    setIsLoading(true)
-    
+    setIsLoading(true);
+
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
@@ -41,26 +47,26 @@ export default function LoginPage() {
           username: formData.username,
           password: formData.password,
         }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Error al iniciar sesión")
+        throw new Error(data.message || "Error al iniciar sesión");
       }
 
       // Guardar token y rol
-      localStorage.setItem("token", data.token)
-      localStorage.setItem("userRole", String(data.role)) // El id de rol real devuelto por la BD
-      localStorage.setItem("userName", formData.username)
-      
-      router.push("/dashboard")
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("userRole", String(data.role)); // El id de rol real devuelto por la BD
+      localStorage.setItem("userName", formData.username);
+
+      router.push("/dashboard");
     } catch (err: any) {
-      setError(err.message)
+      setError(err.message);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
@@ -71,12 +77,16 @@ export default function LoginPage() {
             <GraduationCap className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">EduGestión</h1>
-          <p className="text-muted-foreground text-sm mt-1">Sistema de Gestión Escolar</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            Sistema de Gestión Escolar
+          </p>
         </div>
 
         <Card className="border-0 shadow-xl">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl text-center">Iniciar Sesión</CardTitle>
+            <CardTitle className="text-xl text-center">
+              Iniciar Sesión
+            </CardTitle>
             <CardDescription className="text-center">
               Ingrese sus credenciales para acceder al sistema
             </CardDescription>
@@ -93,7 +103,9 @@ export default function LoginPage() {
                     placeholder="usuario o correo@ejemplo.com"
                     className="pl-10"
                     value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, username: e.target.value })
+                    }
                   />
                 </div>
               </div>
@@ -102,7 +114,10 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Contraseña</Label>
-                  <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
                     ¿Olvidaste tu contraseña?
                   </Link>
                 </div>
@@ -114,14 +129,20 @@ export default function LoginPage() {
                     placeholder="Ingrese su contraseña"
                     className="pl-10 pr-10"
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -153,9 +174,9 @@ export default function LoginPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          © 2025 EduGestión - Todos los derechos reservados
+          © 2026 EduGestión - Todos los derechos reservados
         </p>
       </div>
     </div>
-  )
+  );
 }
