@@ -24,6 +24,8 @@ app.use("/api/profesores", profesorRoutes);
 app.use("/api/gestiones", gestionRoutes);
 app.use("/api/estructura", estructuraRoutes);
 app.use("/api/materias", materiaRoutes);
+app.use("/api/curso", require("./routes/cursoRoutes"));
+app.use("/api/materia-asig", require("./routes/materiaAsigRoutes"));
 
 const PORT = Number(process.env.PORT) || 3000;
 
