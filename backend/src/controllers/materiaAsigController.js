@@ -63,7 +63,7 @@ const obtenerMateriasDisponibles = async (req, res) => {
              FROM materia m
              JOIN campo_saber cs ON m.id_campo = cs.id_campo
              WHERE m.estado = true
-             AND (m.aplica_primaria = true OR $1 = false)
+             AND (m.aplica_primaria = $1 OR $1 = false AND m.aplica_primaria = false)
              AND NOT EXISTS (
                  SELECT 1 FROM curso_materia cm 
                  WHERE cm.id_curso = $2 AND cm.id_materia = m.id_materia
@@ -319,7 +319,7 @@ const cargarPlantillaMateriasPorNivel = async (req, res) => {
       `SELECT m.id_materia, m.nombre_materia
              FROM materia m
              WHERE m.estado = true
-             AND (m.aplica_primaria = true OR $1 = false)
+             AND (m.aplica_primaria = $1 OR $1 = false AND m.aplica_primaria = false)
              AND NOT EXISTS (
                  SELECT 1 FROM curso_materia cm 
                  WHERE cm.id_curso = $2 AND cm.id_materia = m.id_materia

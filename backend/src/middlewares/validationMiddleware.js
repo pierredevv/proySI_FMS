@@ -105,6 +105,11 @@ const validarCursoUnico = async (req, res, next) => {
   const id_gestion = req.gestionActiva?.id_gestion;
   const id_curso = req.params.id_curso;
 
+  // Si id_grado o paralelo no se enviaron (p.ej. en edición parcial), saltar
+  if (!id_grado || paralelo === undefined || paralelo === null) {
+    return next();
+  }
+
   try {
     let query = `
             SELECT id_curso FROM curso 
@@ -137,24 +142,18 @@ const validarCursoUnico = async (req, res, next) => {
 
 const validarCursoSinInscripciones = async (req, res, next) => {
   const { id_curso } = req.params;
-
   try {
     const result = await pool.query(
-      `SELECT COUNT(*) as total_inscripciones
-             FROM inscripcion
-             WHERE id_curso = $1 AND estado = 'inscrito'`,
-      [id_curso],
+      `SELECT COUNT(*) as total_inscripciones FROM inscripcion WHERE id_curso = $1 AND estado = 'inscrito'`,
+      [id_curso]
     );
-
+  
     if (parseInt(result.rows[0].total_inscripciones) > 0) {
-      return res.status(409).json({
-        error:
-          "El curso tiene estudiantes inscritos. Solo se pueden modificar Aula y Turno.",
-        code: "COURSE_HAS_INSCRIPTIONS",
-        campos_editables: ["id_aula", "turno"],
-      });
+      req.tieneInscripciones = true;
+    } else {
+      req.tieneInscripciones = false;
     }
-
+    
     next();
   } catch (error) {
     console.error("Error validando inscripciones:", error);

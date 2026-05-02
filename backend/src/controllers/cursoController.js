@@ -55,6 +55,7 @@ const crearCurso = async (req, res) => {
     res.status(500).json({ error: "Error interno del servidor" });
   }
 };
+
 const obtenerDatosFormularioCurso = async (req, res) => {
   try {
     const gestionActiva = await pool.query(
@@ -84,12 +85,13 @@ const obtenerDatosFormularioCurso = async (req, res) => {
                         SELECT 1 FROM curso c 
                         WHERE c.id_aula = a.id_aula 
                         AND c.id_gestion = $1
+                        AND c.turno = $2
                     ) THEN 'ocupado'
                     ELSE 'disponible'
                 END as estado
              FROM aula a
              ORDER BY a.numero_aula`,
-      [gestionActiva.rows[0]?.id_gestion || 0],
+      [gestionActiva.rows[0]?.id_gestion || 0, req.query.turno || 'Mañana'],
     );
 
     const profesores = await pool.query(
@@ -309,9 +311,11 @@ const duplicarCurso = async (req, res) => {
 
   try {
     const cursoOriginal = await pool.query(
-      `SELECT id_grado, id_aula, id_gestion, turno 
-             FROM curso 
-             WHERE id_curso = $1`,
+      `SELECT c.id_grado, c.id_gestion, c.turno, g.nombre_grado, n.nombre_nivel
+             FROM curso c
+             JOIN grado g ON c.id_grado = g.id_grado
+             JOIN nivel n ON g.id_nivel = n.id_nivel
+             WHERE c.id_curso = $1`,
       [id_curso],
     );
 
@@ -321,30 +325,22 @@ const duplicarCurso = async (req, res) => {
 
     const original = cursoOriginal.rows[0];
 
-    const result = await pool.query(
-      `INSERT INTO curso (id_grado, paralelo, id_aula, id_gestion, id_profesor, turno)
-             VALUES ($1, '', $2, $3, NULL, $4)
-             RETURNING id_curso`,
-      [
-        original.id_grado,
-        original.id_aula,
-        original.id_gestion,
-        original.turno,
-      ],
-    );
-
-    const nuevoCursoId = result.rows[0].id_curso;
-
-    res.status(201).json({
-      message:
-        "Curso duplicado exitosamente. Complete el paralelo y asigne un profesor titular.",
-      nuevo_curso_id: nuevoCursoId,
+    // No insertar directamente: devolver datos precargados para que el usuario
+    // complete el formulario (paralelo, aula, profesor) sin violar restricciones
+    res.json({
+      message: "Datos precargados del curso original. Complete el formulario para crear el nuevo curso.",
       datos_precargados: {
         id_grado: original.id_grado,
-        id_aula: original.id_aula,
+        nombre_grado: original.nombre_grado,
+        nombre_nivel: original.nombre_nivel,
         turno: original.turno,
         id_gestion: original.id_gestion,
       },
+      instrucciones: [
+        "Seleccione un paralelo distinto",
+        "Seleccione un aula disponible para el turno indicado",
+        "Asigne un profesor titular",
+      ]
     });
   } catch (error) {
     console.error("Error en duplicarCurso:", error);

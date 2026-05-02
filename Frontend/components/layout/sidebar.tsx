@@ -77,38 +77,24 @@ const navItems: NavItem[] = [
       { title: "Campos y Materias", href: "/dashboard/materias", icon: BookOpen, roles: [1, 2] },
     ],
   },
-  /* -- OCULTOS PARA EL CICLO 1 --
   {
-    title: "Estudiantes",
+    title: "Ciclo 2 – Alumnado",
     icon: School,
+    roles: [1, 2, 4], // Admin, Director, Administrativo/Secretaria
     children: [
-      { title: "Expedientes", href: "/dashboard/estudiantes", icon: Users },
-      { title: "Inscripciones", href: "/dashboard/estudiantes/inscripciones", icon: ClipboardList },
-      { title: "Tutores", href: "/dashboard/tutores", icon: UserCheck },
+      { title: "Cursos", href: "/dashboard/cursos", icon: BookOpen, roles: [1, 2] },
+      { title: "Horarios", href: "/dashboard/horarios", icon: CalendarCheck, roles: [1, 2, 4] },
+      { title: "Estudiantes", href: "/dashboard/estudiantes", icon: Users, roles: [1, 2, 4] },
+      { title: "Inscripciones", href: "/dashboard/inscripciones", icon: ClipboardList, roles: [1, 2, 4] },
+      { title: "Tutores", href: "/dashboard/tutores", icon: UserCheck, roles: [1, 2, 4] },
     ],
   },
   {
-    title: "Académico",
-    icon: BookOpen,
-    children: [
-      { title: "Calificaciones", href: "/dashboard/calificaciones", icon: ClipboardList },
-      { title: "Asistencia", href: "/dashboard/asistencia", icon: CalendarCheck },
-      { title: "Notas (Simple)", href: "/dashboard/notas", icon: FileText },
-    ],
+    title: "Expedientes",
+    href: "/dashboard/expedientes",
+    icon: FileText,
+    roles: [1, 2, 3, 4],
   },
-  {
-    title: "Pagos",
-    icon: CreditCard,
-    children: [
-      { title: "Registro de Pagos", href: "/dashboard/pagos", icon: DollarSign },
-      { title: "Estados de Cuenta", href: "/dashboard/pagos/estados", icon: Receipt },
-      { title: "Comprobantes", href: "/dashboard/pagos/comprobantes", icon: FileText },
-    ],
-  },
-  {
-    title: "Inventario",
-    ...
-  */
 ]
 
 interface SidebarProps {
