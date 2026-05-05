@@ -810,7 +810,7 @@ CREATE TABLE public.estudiante (
     estado character varying(20) DEFAULT 'activo'::character varying NOT NULL,
     fecha_registro timestamp without time zone DEFAULT now() NOT NULL,
     observaciones text,
-    CONSTRAINT estudiante_estado_check CHECK (((estado)::text = ANY ((ARRAY['activo'::character varying, 'retirado'::character varying, 'egresado'::character varying])::text[]))),
+    CONSTRAINT estudiante_estado_check CHECK (((estado)::text = ANY ((ARRAY['activo'::character varying, 'inactivo'::character varying, 'retirado'::character varying, 'egresado'::character varying])::text[]))),
     CONSTRAINT estudiante_genero_check CHECK (((genero)::text = ANY ((ARRAY['Masculino'::character varying, 'Femenino'::character varying])::text[])))
 );
 
@@ -2883,8 +2883,21 @@ ALTER TABLE ONLY public.usuario
 
 
 --
+-- Name: rol_funcionalidad; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE IF NOT EXISTS public.rol_funcionalidad (
+    id_rol integer NOT NULL,
+    id_funcionalidad integer NOT NULL,
+    fecha_asignacion timestamp without time zone DEFAULT now() NOT NULL,
+    CONSTRAINT rol_funcionalidad_pkey PRIMARY KEY (id_rol, id_funcionalidad),
+    CONSTRAINT rol_funcionalidad_id_rol_fkey FOREIGN KEY (id_rol) REFERENCES public.rol(id_rol) ON DELETE CASCADE,
+    CONSTRAINT rol_funcionalidad_id_funcionalidad_fkey FOREIGN KEY (id_funcionalidad) REFERENCES public.funcionalidad(id_funcionalidad) ON DELETE CASCADE
+);
+
+
+--
 -- PostgreSQL database dump complete
 --
 
 \unrestrict cg3pkGQlwyafpmA4D1v1EeWNEEXePoKcHcgTe9HmRtS6soRqypvHLHMnrHgPMFF
-

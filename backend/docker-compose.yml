@@ -14,6 +14,9 @@ services:
       - ./src/database/schema.sql:/docker-entrypoint-initdb.d/00_schema.sql:ro
       - ./src/database/seed.sql:/docker-entrypoint-initdb.d/01_seed.sql:ro
       - ./src/database/migrations/001_align_ciclo2.sql:/docker-entrypoint-initdb.d/02_align_ciclo2.sql:ro
+      - ./src/database/migrations/002_asistencia_pagos_inventario.sql:/docker-entrypoint-initdb.d/03_asistencia_pagos_inventario.sql:ro
+      - ./src/database/migrations/003_demo_data.sql:/docker-entrypoint-initdb.d/04_demo_data.sql:ro
+      - ./src/database/migrations/004_estudiante_estado_inactivo.sql:/docker-entrypoint-initdb.d/05_estudiante_estado_inactivo.sql:ro
 
 volumes:
   pgdata:

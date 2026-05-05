@@ -17,6 +17,9 @@ const inscripcionRoutes = require('./routes/inscripcionRoutes');
 const expedienteRoutes = require('./routes/expedienteRoutes');
 const bitacoraRoutes = require('./routes/bitacoraRoutes');
 const seguridadRoutes = require('./routes/seguridadRoutes');
+const asistenciaRoutes = require('./routes/asistenciaRoutes');
+const pagoRoutes = require('./routes/pagoRoutes');
+const inventarioRoutes = require('./routes/inventarioRoutes');
 
 const app = express();
 
@@ -40,9 +43,12 @@ app.use('/api/inscripciones', inscripcionRoutes);
 app.use('/api/expedientes', expedienteRoutes);
 app.use('/api/bitacora', bitacoraRoutes);
 app.use('/api/seguridad', seguridadRoutes);
+app.use('/api/asistencias', asistenciaRoutes);
+app.use('/api/pagos', pagoRoutes);
+app.use('/api/inventario', inventarioRoutes);
 
 
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || 5000;
 
 const startServer = async () => {
   try {

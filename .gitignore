@@ -1,8 +1,10 @@
 # Dependencies
 node_modules/
+**/node_modules/
 
 # Build output
 .next/
+**/.next/
 out/
 dist/
 build/
@@ -28,15 +30,22 @@ pids/
 *.pid
 *.seed
 *.pid.lock
+.pgdata/
+backend/.pgdata/
+*.dump
+*.backup
+*.sql.gz
 
 # Coverage
 coverage/
+**/coverage/
 .nyc_output/
 
 # Cache
 .cache/
 .parcel-cache/
 .turbo/
+**/.turbo/
 
 # OS and editor files
 .DS_Store

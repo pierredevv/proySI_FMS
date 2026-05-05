@@ -11,6 +11,26 @@ const LOGIN_LIMIT_WINDOW_MS = 60 * 1000;
 const FORGOT_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const RESET_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
+const me = async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT u.id_usuario, u.username, u.email, u.id_rol, r.nombre_rol
+             FROM usuario u
+             JOIN rol r ON r.id_rol = u.id_rol
+             WHERE u.id_usuario = $1 AND u.estado = TRUE`,
+            [req.usuario.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Usuario no encontrado o inactivo' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener el usuario autenticado', error: error.message });
+    }
+};
+
 const login = async (req, res) => {
     const { username, password } = req.body;
     const ip = req.ip || req.connection?.remoteAddress || 'unknown-ip';
@@ -216,4 +236,4 @@ const logout = async (req, res) => {
     res.json({ message: 'Cierre de sesion existoso. Se debe eliminar el token en el cliente (front) eso hace yimy' })
 }
 
-module.exports = { login, forgotPassword, resetPassword, logout };
+module.exports = { me, login, forgotPassword, resetPassword, logout };

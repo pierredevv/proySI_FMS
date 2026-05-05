@@ -96,6 +96,35 @@ const navItems: NavItem[] = [
     icon: FileText,
     roles: [1, 2, 3, 4],
   },
+  {
+    title: "Control Académico",
+    icon: ClipboardList,
+    roles: [1, 2, 3],
+    children: [
+      { title: "Asistencia", href: "/dashboard/asistencia", icon: UserCheck, roles: [1, 2, 3] },
+      { title: "Calificaciones", href: "/dashboard/calificaciones", icon: GraduationCap, roles: [1, 2, 3] },
+      { title: "Notas", href: "/dashboard/notas", icon: FileText, roles: [1, 2, 3] },
+    ],
+  },
+  {
+    title: "Administración",
+    icon: Settings,
+    roles: [1, 2, 4],
+    children: [
+      { title: "Pagos", href: "/dashboard/pagos", icon: CreditCard, roles: [1, 2, 4] },
+      { title: "Inventario", href: "/dashboard/inventario", icon: Package, roles: [1, 2, 4] },
+      { title: "Entregas", href: "/dashboard/entregas", icon: ArrowRightLeft, roles: [1, 2, 4] },
+    ],
+  },
+  {
+    title: "Comunicación",
+    icon: Bell,
+    roles: [1, 2, 3, 4],
+    children: [
+      { title: "Avisos", href: "/dashboard/comunicacion", icon: Megaphone, roles: [1, 2, 3, 4] },
+      { title: "Reportes", href: "/dashboard/reportes", icon: BarChart3, roles: [1, 2, 4] },
+    ],
+  },
 ]
 
 interface SidebarProps {

@@ -96,6 +96,9 @@ FROM (
         ('GET /api/horarios/*', 'Consultar horarios', 'gestionar_horarios', 'academico'),
         ('POST /api/horarios', 'Crear bloques de horario', 'gestionar_horarios', 'academico'),
         ('PUT /api/horarios/:id', 'Editar bloques de horario', 'gestionar_horarios', 'academico'),
+        ('GET /api/asistencias/cursos', 'Listar cursos para asistencia', 'ver_asistencias', 'asistencias'),
+        ('GET /api/asistencias/curso/:id_curso', 'Consultar asistencia por curso y fecha', 'ver_asistencias', 'asistencias'),
+        ('POST /api/asistencias/curso/:id_curso', 'Registrar asistencia por curso y fecha', 'registrar_asistencia', 'asistencias'),
         ('GET /api/estudiantes/*', 'Consultar estudiantes', 'ver_estudiantes', 'estudiantes'),
         ('POST /api/estudiantes', 'Registrar estudiantes', 'gestionar_estudiantes', 'estudiantes'),
         ('PUT /api/estudiantes/:id', 'Actualizar estudiantes', 'gestionar_estudiantes', 'estudiantes'),
@@ -103,15 +106,133 @@ FROM (
         ('POST /api/tutores', 'Registrar tutores', 'gestionar_tutores', 'estudiantes'),
         ('POST /api/inscripciones', 'Inscribir estudiantes', 'gestionar_inscripciones', 'estudiantes'),
         ('PUT /api/inscripciones/*', 'Retirar o trasladar estudiantes', 'gestionar_inscripciones', 'estudiantes'),
-        ('GET /api/expedientes/:id', 'Consultar expediente', 'consultar_expedientes', 'expedientes')
+        ('GET /api/expedientes/:id', 'Consultar expediente', 'consultar_expedientes', 'expedientes'),
+        ('GET /api/pagos/conceptos', 'Listar conceptos de pago', 'ver_pagos', 'pagos'),
+        ('POST /api/pagos/conceptos', 'Crear conceptos de pago', 'gestionar_pagos', 'pagos'),
+        ('GET /api/pagos/deudas', 'Listar deudas y pagos', 'ver_pagos', 'pagos'),
+        ('POST /api/pagos/deudas', 'Generar deudas', 'gestionar_pagos', 'pagos'),
+        ('POST /api/pagos', 'Registrar pagos', 'gestionar_pagos', 'pagos'),
+        ('PUT /api/pagos/:id/estado', 'Validar o rechazar pagos', 'gestionar_pagos', 'pagos'),
+        ('GET /api/inventario/materiales', 'Listar materiales', 'ver_inventario', 'inventario'),
+        ('POST /api/inventario/materiales', 'Crear materiales', 'gestionar_inventario', 'inventario'),
+        ('PUT /api/inventario/materiales/:id', 'Actualizar materiales', 'gestionar_inventario', 'inventario'),
+        ('GET /api/inventario/movimientos', 'Listar movimientos de inventario', 'ver_inventario', 'inventario'),
+        ('POST /api/inventario/movimientos', 'Registrar movimientos de inventario', 'gestionar_inventario', 'inventario')
 ) AS datos(metodo, descripcion, nombre_permiso, nombre_modulo)
 JOIN permiso p ON p.nombre_permiso = datos.nombre_permiso
 JOIN modulo m ON m.nombre_modulo = datos.nombre_modulo
 ON CONFLICT DO NOTHING;
 
 INSERT INTO rol_permiso (id_rol, id_permiso)
-SELECT 1, id_permiso FROM permiso
+SELECT r.id_rol, p.id_permiso
+FROM (
+    VALUES
+        ('SuperUsuario', 'ver_dashboard'),
+        ('SuperUsuario', 'gestionar_usuarios'),
+        ('SuperUsuario', 'gestionar_roles'),
+        ('SuperUsuario', 'ver_bitacora'),
+        ('SuperUsuario', 'gestionar_estructura'),
+        ('SuperUsuario', 'gestionar_cursos'),
+        ('SuperUsuario', 'gestionar_materias'),
+        ('SuperUsuario', 'asignar_materias'),
+        ('SuperUsuario', 'gestionar_horarios'),
+        ('SuperUsuario', 'gestionar_estudiantes'),
+        ('SuperUsuario', 'ver_estudiantes'),
+        ('SuperUsuario', 'gestionar_tutores'),
+        ('SuperUsuario', 'gestionar_inscripciones'),
+        ('SuperUsuario', 'consultar_expedientes'),
+        ('SuperUsuario', 'registrar_asistencia'),
+        ('SuperUsuario', 'ver_asistencias'),
+        ('SuperUsuario', 'gestionar_evaluaciones'),
+        ('SuperUsuario', 'ver_evaluaciones'),
+        ('SuperUsuario', 'gestionar_pagos'),
+        ('SuperUsuario', 'ver_pagos'),
+        ('SuperUsuario', 'gestionar_inventario'),
+        ('SuperUsuario', 'ver_inventario'),
+        ('SuperUsuario', 'registrar_entregas'),
+        ('SuperUsuario', 'ver_entregas'),
+        ('SuperUsuario', 'publicar_avisos'),
+        ('SuperUsuario', 'ver_reportes'),
+        ('Director', 'ver_dashboard'),
+        ('Director', 'gestionar_estructura'),
+        ('Director', 'gestionar_cursos'),
+        ('Director', 'gestionar_materias'),
+        ('Director', 'asignar_materias'),
+        ('Director', 'gestionar_horarios'),
+        ('Director', 'gestionar_estudiantes'),
+        ('Director', 'ver_estudiantes'),
+        ('Director', 'gestionar_tutores'),
+        ('Director', 'gestionar_inscripciones'),
+        ('Director', 'consultar_expedientes'),
+        ('Director', 'registrar_asistencia'),
+        ('Director', 'ver_asistencias'),
+        ('Director', 'gestionar_evaluaciones'),
+        ('Director', 'ver_evaluaciones'),
+        ('Director', 'gestionar_pagos'),
+        ('Director', 'ver_pagos'),
+        ('Director', 'gestionar_inventario'),
+        ('Director', 'ver_inventario'),
+        ('Director', 'registrar_entregas'),
+        ('Director', 'ver_entregas'),
+        ('Director', 'publicar_avisos'),
+        ('Director', 'ver_reportes'),
+        ('Profesor', 'ver_dashboard'),
+        ('Profesor', 'ver_estudiantes'),
+        ('Profesor', 'consultar_expedientes'),
+        ('Profesor', 'registrar_asistencia'),
+        ('Profesor', 'ver_asistencias'),
+        ('Profesor', 'gestionar_evaluaciones'),
+        ('Profesor', 'ver_evaluaciones'),
+        ('Profesor', 'publicar_avisos'),
+        ('Administrativo', 'ver_dashboard'),
+        ('Administrativo', 'gestionar_estructura'),
+        ('Administrativo', 'gestionar_estudiantes'),
+        ('Administrativo', 'ver_estudiantes'),
+        ('Administrativo', 'gestionar_tutores'),
+        ('Administrativo', 'gestionar_inscripciones'),
+        ('Administrativo', 'consultar_expedientes'),
+        ('Administrativo', 'gestionar_pagos'),
+        ('Administrativo', 'ver_pagos'),
+        ('Administrativo', 'gestionar_inventario'),
+        ('Administrativo', 'ver_inventario'),
+        ('Administrativo', 'registrar_entregas'),
+        ('Administrativo', 'ver_entregas'),
+        ('Administrativo', 'publicar_avisos'),
+        ('Administrativo', 'ver_reportes')
+) AS datos(nombre_rol, nombre_permiso)
+JOIN rol r ON r.nombre_rol = datos.nombre_rol
+JOIN permiso p ON p.nombre_permiso = datos.nombre_permiso
 ON CONFLICT (id_rol, id_permiso) DO NOTHING;
+
+INSERT INTO rol_funcionalidad (id_rol, id_funcionalidad)
+SELECT DISTINCT rp.id_rol, f.id_funcionalidad
+FROM rol_permiso rp
+JOIN funcionalidad f ON f.id_permiso = rp.id_permiso
+WHERE f.estado = TRUE
+ON CONFLICT (id_rol, id_funcionalidad) DO NOTHING;
+
+INSERT INTO concepto_pago (nombre_concepto, descripcion)
+VALUES
+    ('Inscripcion', 'Pago anual de inscripcion'),
+    ('Mensualidad', 'Pago mensual por nivel educativo'),
+    ('Material escolar', 'Pago por materiales escolares'),
+    ('Uniforme', 'Pago por uniforme institucional')
+ON CONFLICT (nombre_concepto) DO UPDATE
+SET descripcion = EXCLUDED.descripcion;
+
+INSERT INTO material (nombre_item, descripcion, categoria, stock_actual, stock_minimo)
+SELECT datos.nombre_item, datos.descripcion, datos.categoria, datos.stock_actual, datos.stock_minimo
+FROM (
+    VALUES
+        ('Cuadernos rayados 100 hojas', 'Cuadernos para uso escolar', 'Material escolar', 0, 50),
+        ('Lapices HB', 'Lapices de grafito para aula', 'Material escolar', 0, 100),
+        ('Tizas blancas', 'Caja de tizas blancas', 'Material escolar', 0, 20),
+        ('Sillas escolares', 'Mobiliario para aulas', 'Mobiliario', 0, 20),
+        ('Mesas escolares', 'Mobiliario para aulas', 'Mobiliario', 0, 20)
+) AS datos(nombre_item, descripcion, categoria, stock_actual, stock_minimo)
+WHERE NOT EXISTS (
+    SELECT 1 FROM material m WHERE m.nombre_item = datos.nombre_item
+);
 
 INSERT INTO usuario (username, password_hash, id_rol, estado, email, intentos_fallidos)
 VALUES (
