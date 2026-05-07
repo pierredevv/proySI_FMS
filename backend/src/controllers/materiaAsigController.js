@@ -13,8 +13,7 @@ const obtenerMateriasDisponibles = async (req, res) => {
                 c.id_profesor AS profesor_titular_id,
                 p.nombre || ' ' || p.apellido AS profesor_titular_nombre,
                 g.id_nivel,
-                n.nombre_nivel,
-                n.id_nivel
+                n.nombre_nivel
              FROM curso c
              JOIN grado g ON c.id_grado = g.id_grado
              JOIN nivel n ON g.id_nivel = n.id_nivel
@@ -28,7 +27,11 @@ const obtenerMateriasDisponibles = async (req, res) => {
     }
 
     const curso = cursoInfo.rows[0];
-    const esPrimaria = curso.id_nivel === 2; // 2 = Primaria
+    // ✅ CORREGIDO: Primaria ahora es id_nivel = 2
+    const esPrimaria = curso.id_nivel === 2;
+    const esInicial = curso.id_nivel === 1;
+    const esKinder = curso.id_nivel === 8;
+
     const profesorTitular = {
       id_profesor: curso.profesor_titular_id,
       nombre_completo: curso.profesor_titular_nombre,
@@ -51,6 +54,7 @@ const obtenerMateriasDisponibles = async (req, res) => {
     );
 
     // Obtener materias disponibles agrupadas por Campo de Saber
+    // ✅ CORREGIDO: Usa esPrimaria para filtrar materias que aplican a Primaria
     const materiasDisponibles = await pool.query(
       `SELECT 
                 cs.id_campo,
@@ -63,7 +67,7 @@ const obtenerMateriasDisponibles = async (req, res) => {
              FROM materia m
              JOIN campo_saber cs ON m.id_campo = cs.id_campo
              WHERE m.estado = true
-             AND (m.aplica_primaria = $1 OR $1 = false AND m.aplica_primaria = false)
+             AND (m.aplica_primaria = true OR $1 = false)
              AND NOT EXISTS (
                  SELECT 1 FROM curso_materia cm 
                  WHERE cm.id_curso = $2 AND cm.id_materia = m.id_materia
@@ -105,6 +109,13 @@ const obtenerMateriasDisponibles = async (req, res) => {
       });
     }
 
+    // Flat list of available materias for frontend compatibility
+    const disponiblesFlat = materiasDisponibles.rows.map((m) => ({
+      id_materia: m.id_materia,
+      nombre_materia: m.nombre_materia,
+      nombre_campo: m.nombre_campo,
+    }));
+
     res.json({
       curso: {
         id_curso: curso.id_curso,
@@ -112,6 +123,10 @@ const obtenerMateriasDisponibles = async (req, res) => {
         nivel: curso.nombre_nivel,
         profesor_titular: profesorTitular,
       },
+      // Frontend-compatible keys
+      asignadas: materiasAsignadas.rows,
+      disponibles: disponiblesFlat,
+      // Extended keys (grouped)
       materias_asignadas: materiasAsignadas.rows,
       materias_disponibles_agrupadas: Object.values(materiasPorCampo).sort(
         (a, b) => a.orden - b.orden,
@@ -127,7 +142,8 @@ const obtenerMateriasDisponibles = async (req, res) => {
 // ========== Asignar materias a curso ==========
 const asignarMaterias = async (req, res) => {
   const { id_curso } = req.params;
-  const { asignaciones } = req.body; // Array de { id_materia, id_profesor }
+  // Accept both 'asignaciones' (backend native) and 'materias' (frontend compat)
+  const asignaciones = req.body.asignaciones || req.body.materias || [];
 
   try {
     // Validar que el curso existe
@@ -275,7 +291,6 @@ const eliminarAsignacionMateria = async (req, res) => {
   const { id_curso_materia } = req.params;
 
   try {
-    // Verificar si tiene calificaciones (el middleware ya lo hace)
     const result = await pool.query(
       "DELETE FROM curso_materia WHERE id_curso_materia = $1 RETURNING id_curso_materia",
       [id_curso_materia],
@@ -311,6 +326,7 @@ const cargarPlantillaMateriasPorNivel = async (req, res) => {
     }
 
     const curso = cursoInfo.rows[0];
+    // ✅ CORREGIDO: Primaria ahora es id_nivel = 2
     const esPrimaria = curso.id_nivel === 2;
     const profesorTitular = curso.id_profesor;
 
@@ -319,7 +335,7 @@ const cargarPlantillaMateriasPorNivel = async (req, res) => {
       `SELECT m.id_materia, m.nombre_materia
              FROM materia m
              WHERE m.estado = true
-             AND (m.aplica_primaria = $1 OR $1 = false AND m.aplica_primaria = false)
+             AND (m.aplica_primaria = true OR $1 = false)
              AND NOT EXISTS (
                  SELECT 1 FROM curso_materia cm 
                  WHERE cm.id_curso = $2 AND cm.id_materia = m.id_materia

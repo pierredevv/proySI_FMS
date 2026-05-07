@@ -40,7 +40,7 @@ export const cursosApi = {
     get<{ total: number; cursos: CursoDetalle[] }>("/api/curso/cursos")
       .then(r => r.cursos),
   // GET /api/curso/cursos/:id
-  getOne: (id: number) => get<CursoDetalle>(`/api/curso/cursos/${id}`),
+  getOne: (id: number) => get<{ curso: CursoDetalle }>(`/api/curso/cursos/${id}`).then(r => r.curso),
   // GET /api/curso/cursos/formulario/datos
   getFormulario: () => get<FormularioCurso>("/api/curso/cursos/formulario/datos"),
   // POST /api/curso/cursos
@@ -48,12 +48,15 @@ export const cursosApi = {
     post<{ message: string; curso: CursoDetalle }>("/api/curso/cursos", data),
   // PUT /api/curso/cursos/:id
   update: (id: number, data: Partial<CursoPayload>) =>
-    put<{ message: string; curso: CursoDetalle }>(`/api/curso/cursos/${id}`, data),
+    put<{ message: string; campos_editados?: string[] }>(`/api/curso/cursos/${id}`, data),
   // DELETE /api/curso/cursos/:id
   delete: (id: number) => del<{ message: string }>(`/api/curso/cursos/${id}`),
   // POST /api/curso/cursos/:id/duplicar
   duplicar: (id: number) =>
-    post<{ message: string; data: CursoDetalle }>(`/api/curso/cursos/${id}/duplicar`, {}),
+    post<{ message: string; nuevo_curso_id?: number }>(`/api/curso/cursos/${id}/duplicar`, {}),
+  // PATCH /api/curso/cursos/:id/activar
+  activar: (id: number) =>
+    apiRequest<{ message: string }>("PATCH", `/api/curso/cursos/${id}/activar`),
 }
 
 // ── CU09 – Materias asignadas ─────────────────────────────────────────────────
@@ -62,12 +65,20 @@ export const cursosApi = {
 export const materiaAsigApi = {
   // GET /api/materia-asig/cursos/:id/materias/disponibles
   getMaterias: (idCurso: number) =>
-    get<{ asignadas: MateriaAsignada[]; disponibles: MateriaDisponible[] }>(
-      `/api/materia-asig/cursos/${idCurso}/materias/disponibles`
-    ),
+    get<{
+      asignadas: MateriaAsignada[]
+      disponibles: MateriaDisponible[]
+      materias_asignadas: MateriaAsignada[]
+      materias_disponibles_agrupadas: CampoMaterias[]
+      catalogo_profesores: Profesor[]
+      curso: { id_curso: number; nivel: string; profesor_titular: { id_profesor: number; nombre_completo: string } }
+    }>(`/api/materia-asig/cursos/${idCurso}/materias/disponibles`),
   // POST /api/materia-asig/cursos/:id/materias
+  // body: { materias: [{ id_materia, id_profesor }] } o { asignaciones: [...] }
   asignar: (idCurso: number, data: { materias: { id_materia: number; id_profesor: number }[] }) =>
-    post<{ message: string }>(`/api/materia-asig/cursos/${idCurso}/materias`, data),
+    post<{ message: string; asignaciones_exitosas?: MateriaAsignada[] }>(
+      `/api/materia-asig/cursos/${idCurso}/materias`, data
+    ),
   // PUT /api/materia-asig/cursos/materias/:id/profesor
   actualizarProfesor: (idCursoMateria: number, id_profesor: number) =>
     put<{ message: string }>(`/api/materia-asig/cursos/materias/${idCursoMateria}/profesor`, { id_profesor }),
@@ -76,7 +87,7 @@ export const materiaAsigApi = {
     del<{ message: string }>(`/api/materia-asig/cursos/materias/${idCursoMateria}`),
   // POST /api/materia-asig/cursos/:id/materias/plantilla
   cargarPlantilla: (idCurso: number) =>
-    post<{ message: string; asignadas: number }>(
+    post<{ message: string; asignaciones: MateriaAsignada[] }>(
       `/api/materia-asig/cursos/${idCurso}/materias/plantilla`, {}
     ),
 }
@@ -252,15 +263,28 @@ export interface MateriaAsignada {
   id_curso_materia: number
   id_materia: number
   nombre_materia: string
-  nombre_campo: string
-  profesor: string
+  nombre_campo?: string
+  nombre_profesor?: string
+  profesor?: string        // alias from backend
   id_profesor: number
 }
 
 export interface MateriaDisponible {
   id_materia: number
   nombre_materia: string
+  nombre_campo?: string
+}
+
+export interface CampoMaterias {
+  id_campo: number
   nombre_campo: string
+  orden: number
+  materias: {
+    id_materia: number
+    nombre_materia: string
+    descripcion?: string
+    profesor_sugerido?: number
+  }[]
 }
 
 export interface BloqueHorario {

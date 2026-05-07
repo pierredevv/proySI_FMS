@@ -145,15 +145,15 @@ const validarCursoSinInscripciones = async (req, res, next) => {
   try {
     const result = await pool.query(
       `SELECT COUNT(*) as total_inscripciones FROM inscripcion WHERE id_curso = $1 AND estado = 'inscrito'`,
-      [id_curso]
+      [id_curso],
     );
-  
+
     if (parseInt(result.rows[0].total_inscripciones) > 0) {
       req.tieneInscripciones = true;
     } else {
       req.tieneInscripciones = false;
     }
-    
+
     next();
   } catch (error) {
     console.error("Error validando inscripciones:", error);
