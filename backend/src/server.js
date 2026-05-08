@@ -23,10 +23,14 @@ const inventarioRoutes = require('./routes/inventarioRoutes');
 
 const app = express();
 
-app.use(cors());
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN || "https://proyectosi1-rhk7cxxko-pierreelpro19-gmailcoms-projects.vercel.app",
+  credentials: true, // Muy importante si usas tokens o sesiones
+};
+
+app.use(cors(corsOptions)); 
 app.use(express.json());
 
-// RUTAS
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/roles", roleRoutes);
@@ -46,7 +50,6 @@ app.use('/api/seguridad', seguridadRoutes);
 app.use('/api/asistencias', asistenciaRoutes);
 app.use('/api/pagos', pagoRoutes);
 app.use('/api/inventario', inventarioRoutes);
-
 
 const PORT = Number(process.env.PORT) || 5000;
 
