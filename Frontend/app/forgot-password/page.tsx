@@ -1,38 +1,32 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { GraduationCap, Mail, ArrowLeft } from "lucide-react";
-import { API_URL } from "@/lib/api";
+import { useState } from "react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { GraduationCap, Mail, ArrowLeft } from "lucide-react"
+import { API_URL } from "@/lib/api"
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [email, setEmail] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [message, setMessage] = useState("")
+  const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setMessage("");
-
+    e.preventDefault()
+    setError("")
+    setMessage("")
+    
     if (!email) {
-      setError("Por favor ingrese su correo electrónico");
-      return;
+      setError("Por favor ingrese su correo electrónico")
+      return
     }
 
-    setIsLoading(true);
-
+    setIsLoading(true)
+    
     try {
       const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
         method: "POST",
@@ -40,21 +34,21 @@ export default function ForgotPasswordPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email }),
-      });
+      })
 
-      const data = await response.json();
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.message || "Error al solicitar recuperación");
+        throw new Error(data.message || "Error al solicitar recuperación")
       }
 
-      setMessage(data.message);
+      setMessage(data.message)
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
@@ -65,16 +59,12 @@ export default function ForgotPasswordPage() {
             <GraduationCap className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">EduGestión</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Sistema de Gestión Escolar
-          </p>
+          <p className="text-muted-foreground text-sm mt-1">Sistema de Gestión Escolar</p>
         </div>
 
         <Card className="border-0 shadow-xl">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl text-center">
-              Recuperar Contraseña
-            </CardTitle>
+            <CardTitle className="text-xl text-center">Recuperar Contraseña</CardTitle>
             <CardDescription className="text-center">
               Ingrese su correo para recibir un enlace de recuperación
             </CardDescription>
@@ -121,12 +111,9 @@ export default function ForgotPasswordPage() {
                 )}
               </Button>
             </form>
-
+            
             <div className="mt-6 text-center">
-              <Link
-                href="/login"
-                className="inline-flex items-center text-sm font-medium text-primary hover:underline"
-              >
+              <Link href="/login" className="inline-flex items-center text-sm font-medium text-primary hover:underline">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Volver al inicio de sesión
               </Link>
@@ -135,9 +122,9 @@ export default function ForgotPasswordPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          © 2026 EduGestión - Todos los derechos reservados
+          © 2025 EduGestión - Todos los derechos reservados
         </p>
       </div>
     </div>
-  );
+  )
 }

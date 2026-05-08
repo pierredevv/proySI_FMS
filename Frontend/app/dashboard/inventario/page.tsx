@@ -1,331 +1,242 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
+import { API_URL } from "@/lib/api"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import {
-  Search,
-  Plus,
-  MoreHorizontal,
-  Pencil,
-  ArrowUpRight,
-  ArrowDownLeft,
-  Package,
-  AlertTriangle,
-  TrendingUp,
-  Boxes,
-} from "lucide-react"
+import { ArrowDownLeft, ArrowUpRight, Boxes, Package, Plus } from "lucide-react"
 
-interface InventoryItem {
-  id: number
-  name: string
-  category: string
-  currentStock: number
-  minStock: number
-  maxStock: number
-  lastMovement: string
+interface Material {
+  id_material: number
+  nombre_item: string
+  descripcion?: string
+  categoria: string
+  stock_actual: number
+  stock_minimo: number
+  estado: boolean
+  ultima_fecha_movimiento?: string
+  ultimo_tipo_movimiento?: string
 }
 
-const inventory: InventoryItem[] = [
-  {
-    id: 1,
-    name: "Cuadernos rayados 100 hojas",
-    category: "Material escolar",
-    currentStock: 12,
-    minStock: 50,
-    maxStock: 200,
-    lastMovement: "2025-04-10",
-  },
-  {
-    id: 2,
-    name: "Lápices HB",
-    category: "Material escolar",
-    currentStock: 25,
-    minStock: 100,
-    maxStock: 500,
-    lastMovement: "2025-04-08",
-  },
-  {
-    id: 3,
-    name: "Uniformes deportivos talla M",
-    category: "Uniformes",
-    currentStock: 3,
-    minStock: 15,
-    maxStock: 50,
-    lastMovement: "2025-04-05",
-  },
-  {
-    id: 4,
-    name: "Tizas blancas (caja)",
-    category: "Material escolar",
-    currentStock: 45,
-    minStock: 20,
-    maxStock: 100,
-    lastMovement: "2025-04-12",
-  },
-  {
-    id: 5,
-    name: "Sillas escolares",
-    category: "Mobiliario",
-    currentStock: 150,
-    minStock: 100,
-    maxStock: 200,
-    lastMovement: "2025-03-20",
-  },
-  {
-    id: 6,
-    name: "Mesas escolares",
-    category: "Mobiliario",
-    currentStock: 85,
-    minStock: 50,
-    maxStock: 120,
-    lastMovement: "2025-03-20",
-  },
-  {
-    id: 7,
-    name: "Insignias bordadas",
-    category: "Uniformes",
-    currentStock: 200,
-    minStock: 100,
-    maxStock: 500,
-    lastMovement: "2025-04-01",
-  },
-]
-
-function getStockStatus(current: number, min: number, max: number) {
-  const percentage = (current / max) * 100
-  if (current <= min) return { status: "critical", color: "text-destructive", bg: "bg-destructive" }
-  if (percentage <= 30) return { status: "low", color: "text-warning-foreground", bg: "bg-warning" }
-  return { status: "normal", color: "text-success", bg: "bg-success" }
+interface Movimiento {
+  id_movimiento: number
+  id_material: number
+  nombre_item: string
+  tipo_movimiento: "entrada" | "salida"
+  cantidad: number
+  fecha_movimiento: string
+  usuario: string
+  observaciones?: string
 }
+
+const getHeaders = () => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+})
 
 export default function InventarioPage() {
-  const [searchTerm, setSearchTerm] = useState("")
+  const [materiales, setMateriales] = useState<Material[]>([])
+  const [movimientos, setMovimientos] = useState<Movimiento[]>([])
+  const [search, setSearch] = useState("")
+  const [materialOpen, setMaterialOpen] = useState(false)
+  const [movimientoOpen, setMovimientoOpen] = useState(false)
+  const [materialForm, setMaterialForm] = useState({ nombre_item: "", descripcion: "", categoria: "", stock_minimo: "", stock_inicial: "" })
+  const [movimientoForm, setMovimientoForm] = useState({ id_material: "", tipo_movimiento: "entrada", cantidad: "", observaciones: "" })
 
-  const filteredInventory = inventory.filter((item) =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const load = async () => {
+    const qs = search ? `?search=${encodeURIComponent(search)}` : ""
+    try {
+      const [materialesRes, movimientosRes] = await Promise.all([
+        fetch(`${API_URL}/api/inventario/materiales${qs}`, { headers: getHeaders() }),
+        fetch(`${API_URL}/api/inventario/movimientos?limit=25`, { headers: getHeaders() }),
+      ])
+      const [materialesData, movimientosData] = await Promise.all([materialesRes.json(), movimientosRes.json()])
+      if (!materialesRes.ok) throw new Error(materialesData.message || "Error al cargar materiales")
+      if (!movimientosRes.ok) throw new Error(movimientosData.message || "Error al cargar movimientos")
+      setMateriales(materialesData)
+      setMovimientos(movimientosData)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Error al cargar inventario")
+    }
+  }
 
-  const lowStockItems = inventory.filter((item) => item.currentStock <= item.minStock)
-  const totalItems = inventory.reduce((acc, item) => acc + item.currentStock, 0)
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const stats = useMemo(() => {
+    const bajo = materiales.filter(m => m.stock_actual <= m.stock_minimo)
+    return {
+      totalUnidades: materiales.reduce((acc, m) => acc + Number(m.stock_actual), 0),
+      productos: materiales.length,
+      bajo: bajo.length,
+      movimientos: movimientos.length,
+    }
+  }, [materiales, movimientos])
+
+  const createMaterial = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/inventario/materiales`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(materialForm),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || "Error al crear material")
+      toast.success("Material creado")
+      setMaterialOpen(false)
+      setMaterialForm({ nombre_item: "", descripcion: "", categoria: "", stock_minimo: "", stock_inicial: "" })
+      load()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Error al crear material")
+    }
+  }
+
+  const registrarMovimiento = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/inventario/movimientos`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(movimientoForm),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || data.message || "Error al registrar movimiento")
+      toast.success("Movimiento registrado")
+      setMovimientoOpen(false)
+      setMovimientoForm({ id_material: "", tipo_movimiento: "entrada", cantidad: "", observaciones: "" })
+      load()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Error al registrar movimiento")
+    }
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Inventario</h1>
-          <p className="text-muted-foreground">
-            Control de materiales y recursos
-          </p>
+          <p className="text-muted-foreground">Materiales, stock y movimientos</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2">
-            <ArrowUpRight className="h-4 w-4" />
-            Entrada
-          </Button>
-          <Button variant="outline" className="gap-2">
-            <ArrowDownLeft className="h-4 w-4" />
-            Salida
-          </Button>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Nuevo Material
-          </Button>
+          <Dialog open={movimientoOpen} onOpenChange={setMovimientoOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2"><ArrowUpRight className="h-4 w-4" />Movimiento</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Registrar movimiento</DialogTitle></DialogHeader>
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label>Material</Label>
+                  <Select value={movimientoForm.id_material} onValueChange={value => setMovimientoForm({ ...movimientoForm, id_material: value })}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar material" /></SelectTrigger>
+                    <SelectContent>{materiales.map(m => <SelectItem key={m.id_material} value={String(m.id_material)}>{m.nombre_item}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-2">
+                    <Label>Tipo</Label>
+                    <Select value={movimientoForm.tipo_movimiento} onValueChange={value => setMovimientoForm({ ...movimientoForm, tipo_movimiento: value })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent><SelectItem value="entrada">Entrada</SelectItem><SelectItem value="salida">Salida</SelectItem></SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2"><Label>Cantidad</Label><Input type="number" value={movimientoForm.cantidad} onChange={e => setMovimientoForm({ ...movimientoForm, cantidad: e.target.value })} /></div>
+                </div>
+                <div className="grid gap-2"><Label>Observaciones</Label><Textarea value={movimientoForm.observaciones} onChange={e => setMovimientoForm({ ...movimientoForm, observaciones: e.target.value })} /></div>
+              </div>
+              <DialogFooter><Button onClick={registrarMovimiento}>Guardar</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={materialOpen} onOpenChange={setMaterialOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2"><Plus className="h-4 w-4" />Nuevo material</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Nuevo material</DialogTitle></DialogHeader>
+              <div className="grid gap-4">
+                <div className="grid gap-2"><Label>Nombre</Label><Input value={materialForm.nombre_item} onChange={e => setMaterialForm({ ...materialForm, nombre_item: e.target.value })} /></div>
+                <div className="grid gap-2"><Label>Categoria</Label><Input value={materialForm.categoria} onChange={e => setMaterialForm({ ...materialForm, categoria: e.target.value })} /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-2"><Label>Stock minimo</Label><Input type="number" value={materialForm.stock_minimo} onChange={e => setMaterialForm({ ...materialForm, stock_minimo: e.target.value })} /></div>
+                  <div className="grid gap-2"><Label>Stock inicial</Label><Input type="number" value={materialForm.stock_inicial} onChange={e => setMaterialForm({ ...materialForm, stock_inicial: e.target.value })} /></div>
+                </div>
+                <div className="grid gap-2"><Label>Descripcion</Label><Textarea value={materialForm.descripcion} onChange={e => setMaterialForm({ ...materialForm, descripcion: e.target.value })} /></div>
+              </div>
+              <DialogFooter><Button onClick={createMaterial}>Crear</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Items</p>
-                <p className="text-2xl font-bold">{totalItems}</p>
-              </div>
-              <Boxes className="h-8 w-8 text-primary/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Productos</p>
-                <p className="text-2xl font-bold">{inventory.length}</p>
-              </div>
-              <Package className="h-8 w-8 text-info/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-destructive">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Stock Bajo</p>
-                <p className="text-2xl font-bold text-destructive">
-                  {lowStockItems.length}
-                </p>
-              </div>
-              <AlertTriangle className="h-8 w-8 text-destructive/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Movimientos Hoy</p>
-                <p className="text-2xl font-bold">8</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-success/50" />
-            </div>
-          </CardContent>
-        </Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Total unidades</p><p className="text-2xl font-bold">{stats.totalUnidades}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Productos</p><p className="text-2xl font-bold">{stats.productos}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Stock bajo</p><p className="text-2xl font-bold">{stats.bajo}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Movimientos recientes</p><p className="text-2xl font-bold">{stats.movimientos}</p></CardContent></Card>
       </div>
 
-      {/* Low Stock Alert */}
-      {lowStockItems.length > 0 && (
-        <Card className="border-destructive/50 bg-destructive/5">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Alerta de Stock Bajo
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {lowStockItems.map((item) => (
-                <Badge key={item.id} variant="outline" className="border-destructive/50">
-                  {item.name}: {item.currentStock} unidades
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Table */}
       <Card>
-        <CardHeader className="pb-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle>Lista de Materiales</CardTitle>
-              <CardDescription>
-                {filteredInventory.length} materiales registrados
-              </CardDescription>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar material..."
-                className="pl-9 w-full sm:w-64"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+        <CardHeader>
+          <CardTitle>Materiales</CardTitle>
+          <CardDescription>Inventario activo de la institución</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-[1fr_120px]">
+            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar material..." />
+            <Button variant="outline" onClick={load}>Buscar</Button>
           </div>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader><TableRow><TableHead>Material</TableHead><TableHead>Categoria</TableHead><TableHead>Stock</TableHead><TableHead>Minimo</TableHead><TableHead>Ultimo movimiento</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {materiales.map(material => (
+                  <TableRow key={material.id_material}>
+                    <TableCell><p className="font-medium">{material.nombre_item}</p><p className="text-xs text-muted-foreground">{material.descripcion || "Sin descripcion"}</p></TableCell>
+                    <TableCell>{material.categoria}</TableCell>
+                    <TableCell>
+                      <Badge variant={material.stock_actual <= material.stock_minimo ? "destructive" : "secondary"}>{material.stock_actual}</Badge>
+                    </TableCell>
+                    <TableCell>{material.stock_minimo}</TableCell>
+                    <TableCell>{material.ultima_fecha_movimiento ? new Date(material.ultima_fecha_movimiento).toLocaleString("es-BO") : "Sin movimientos"}</TableCell>
+                  </TableRow>
+                ))}
+                {materiales.length === 0 && <TableRow><TableCell colSpan={5} className="py-10 text-center text-muted-foreground">No hay materiales registrados.</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Movimientos recientes</CardTitle>
+          <CardDescription>Entradas y salidas registradas</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Material</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Stock Actual</TableHead>
-                  <TableHead>Nivel</TableHead>
-                  <TableHead>Último Mov.</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
+              <TableHeader><TableRow><TableHead>Material</TableHead><TableHead>Tipo</TableHead><TableHead>Cantidad</TableHead><TableHead>Usuario</TableHead><TableHead>Fecha</TableHead></TableRow></TableHeader>
               <TableBody>
-                {filteredInventory.map((item) => {
-                  const stockStatus = getStockStatus(
-                    item.currentStock,
-                    item.minStock,
-                    item.maxStock
-                  )
-                  const percentage = (item.currentStock / item.maxStock) * 100
-                  return (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{item.category}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className={`font-mono ${stockStatus.color}`}>
-                          {item.currentStock}
-                        </span>
-                        <span className="text-muted-foreground text-sm">
-                          {" "}/ {item.maxStock}
-                        </span>
-                      </TableCell>
-                      <TableCell className="w-32">
-                        <Progress
-                          value={percentage}
-                          className={`h-2 ${
-                            stockStatus.status === "critical"
-                              ? "[&>div]:bg-destructive"
-                              : stockStatus.status === "low"
-                              ? "[&>div]:bg-warning"
-                              : "[&>div]:bg-success"
-                          }`}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {new Date(item.lastMovement).toLocaleDateString("es-BO")}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <ArrowUpRight className="h-4 w-4 mr-2" />
-                              Registrar entrada
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <ArrowDownLeft className="h-4 w-4 mr-2" />
-                              Registrar salida
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
+                {movimientos.map(mov => (
+                  <TableRow key={mov.id_movimiento}>
+                    <TableCell>{mov.nombre_item}</TableCell>
+                    <TableCell className="flex items-center gap-2">{mov.tipo_movimiento === "entrada" ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownLeft className="h-4 w-4" />}{mov.tipo_movimiento}</TableCell>
+                    <TableCell>{mov.cantidad}</TableCell>
+                    <TableCell>{mov.usuario}</TableCell>
+                    <TableCell>{new Date(mov.fecha_movimiento).toLocaleString("es-BO")}</TableCell>
+                  </TableRow>
+                ))}
+                {movimientos.length === 0 && <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">Sin movimientos.</TableCell></TableRow>}
               </TableBody>
             </Table>
           </div>

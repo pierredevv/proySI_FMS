@@ -1,638 +1,268 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
+import { API_URL } from "@/lib/api"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Calendar } from "@/components/ui/calendar"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import {
-  Save,
-  FileText,
-  Users,
-  Check,
-  X,
-  Clock,
-  AlertTriangle,
-  CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
-  UserCheck,
-  UserX,
-  Download,
-} from "lucide-react"
-import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isWeekend } from "date-fns"
-import { es } from "date-fns/locale"
-import { cn } from "@/lib/utils"
+import { Save, Users } from "lucide-react"
 
-type AttendanceStatus = "presente" | "ausente" | "tardanza" | "justificado" | null
+type Estado = "presente" | "ausente" | "tardanza" | "justificado" | "licencia" | ""
 
-interface Student {
-  id: number
-  name: string
-  ci: string
-  attendance: AttendanceStatus
-  observation?: string
+interface Curso {
+  id_curso: number
+  nombre_grado: string
+  nombre_nivel: string
+  paralelo: string
+  turno: string
+  anio: number
+  total_estudiantes: number
 }
 
-interface DailyAttendance {
-  date: Date
-  students: Student[]
+interface EstudianteAsistencia {
+  id_estudiante: number
+  nombre: string
+  apellido: string
+  ci?: string
+  estado?: string | null
+  estado_texto?: Estado | null
+  observaciones?: string | null
 }
 
-// Datos de ejemplo
-const initialStudents: Student[] = [
-  { id: 1, name: "María García López", ci: "12345678", attendance: "presente" },
-  { id: 2, name: "Juan Pérez Mamani", ci: "23456789", attendance: "presente" },
-  { id: 3, name: "Sofía Rodríguez Quispe", ci: "34567890", attendance: "tardanza", observation: "Llegó 10 minutos tarde" },
-  { id: 4, name: "Carlos Mendoza Flores", ci: "45678901", attendance: "ausente" },
-  { id: 5, name: "Ana Martínez Choque", ci: "56789012", attendance: "presente" },
-  { id: 6, name: "Diego López Condori", ci: "67890123", attendance: "justificado", observation: "Cita médica" },
-  { id: 7, name: "Valentina Quispe Mamani", ci: "78901234", attendance: null },
-  { id: 8, name: "Mateo Flores Apaza", ci: "89012345", attendance: null },
-  { id: 9, name: "Isabella Choque Huanca", ci: "90123456", attendance: null },
-  { id: 10, name: "Sebastián Condori Ticona", ci: "01234567", attendance: null },
-]
-
-const statusConfig: Record<
-  Exclude<AttendanceStatus, null>,
-  { label: string; color: string; bg: string; icon: React.ElementType }
-> = {
-  presente: {
-    label: "Presente",
-    color: "text-success",
-    bg: "bg-success/10 hover:bg-success/20 border-success",
-    icon: Check,
-  },
-  ausente: {
-    label: "Ausente",
-    color: "text-destructive",
-    bg: "bg-destructive/10 hover:bg-destructive/20 border-destructive",
-    icon: X,
-  },
-  tardanza: {
-    label: "Tardanza",
-    color: "text-amber-500",
-    bg: "bg-amber-500/10 hover:bg-amber-500/20 border-amber-500",
-    icon: Clock,
-  },
-  justificado: {
-    label: "Justificado",
-    color: "text-info",
-    bg: "bg-info/10 hover:bg-info/20 border-info",
-    icon: AlertTriangle,
-  },
+const estadoToDb: Record<Estado, string> = {
+  presente: "P",
+  ausente: "A",
+  tardanza: "T",
+  justificado: "J",
+  licencia: "L",
+  "": "",
 }
+
+const estadoFromDb: Record<string, Estado> = {
+  P: "presente",
+  A: "ausente",
+  T: "tardanza",
+  J: "justificado",
+  L: "licencia",
+}
+
+const getHeaders = () => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+})
 
 export default function AsistenciaPage() {
-  const [students, setStudents] = useState(initialStudents)
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-  const [selectedGrade, setSelectedGrade] = useState("3A")
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
-  const [observationDialog, setObservationDialog] = useState<{
-    open: boolean
-    studentId: number | null
-    observation: string
-    status: AttendanceStatus
-  }>({
-    open: false,
-    studentId: null,
-    observation: "",
-    status: null,
-  })
+  const [cursos, setCursos] = useState<Curso[]>([])
+  const [idCurso, setIdCurso] = useState("")
+  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10))
+  const [estudiantes, setEstudiantes] = useState<EstudianteAsistencia[]>([])
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  // Estadísticas
-  const stats = {
-    total: students.length,
-    presentes: students.filter((s) => s.attendance === "presente").length,
-    ausentes: students.filter((s) => s.attendance === "ausente").length,
-    tardanzas: students.filter((s) => s.attendance === "tardanza").length,
-    justificados: students.filter((s) => s.attendance === "justificado").length,
-    pendientes: students.filter((s) => s.attendance === null).length,
-  }
-
-  const handleAttendanceChange = (studentId: number, status: AttendanceStatus) => {
-    // Si es tardanza, ausente o justificado, abrir diálogo para observación
-    if (status === "tardanza" || status === "ausente" || status === "justificado") {
-      const student = students.find((s) => s.id === studentId)
-      setObservationDialog({
-        open: true,
-        studentId,
-        observation: student?.observation || "",
-        status,
-      })
-    } else {
-      setStudents((prev) =>
-        prev.map((s) =>
-          s.id === studentId ? { ...s, attendance: status, observation: undefined } : s
-        )
-      )
+  useEffect(() => {
+    const loadCursos = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/asistencias/cursos`, { headers: getHeaders() })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.message || "Error al cargar cursos")
+        setCursos(data)
+        if (data[0]?.id_curso) setIdCurso(String(data[0].id_curso))
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Error al cargar cursos")
+      }
     }
-  }
+    loadCursos()
+  }, [])
 
-  const handleSaveObservation = () => {
-    if (observationDialog.studentId === null) return
-    
-    setStudents((prev) =>
-      prev.map((s) =>
-        s.id === observationDialog.studentId
-          ? {
-              ...s,
-              attendance: observationDialog.status,
-              observation: observationDialog.observation || undefined,
-            }
-          : s
-      )
+  useEffect(() => {
+    if (!idCurso) return
+    const loadAsistencia = async () => {
+      setLoading(true)
+      try {
+        const res = await fetch(`${API_URL}/api/asistencias/curso/${idCurso}?fecha=${fecha}`, { headers: getHeaders() })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.message || "Error al cargar asistencia")
+        setEstudiantes(
+          data.estudiantes.map((e: EstudianteAsistencia) => ({
+            ...e,
+            estado_texto: e.estado ? estadoFromDb[e.estado] : "",
+          }))
+        )
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Error al cargar asistencia")
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadAsistencia()
+  }, [idCurso, fecha])
+
+  const stats = useMemo(() => {
+    return estudiantes.reduce(
+      (acc, e) => {
+        const key = e.estado_texto || "pendiente"
+        acc[key] = (acc[key] || 0) + 1
+        return acc
+      },
+      {} as Record<string, number>
     )
-    setObservationDialog({ open: false, studentId: null, observation: "", status: null })
+  }, [estudiantes])
+
+  const updateStudent = (id: number, patch: Partial<EstudianteAsistencia>) => {
+    setEstudiantes(prev => prev.map(e => e.id_estudiante === id ? { ...e, ...patch } : e))
   }
 
   const markAllPresent = () => {
-    setStudents((prev) =>
-      prev.map((s) =>
-        s.attendance === null ? { ...s, attendance: "presente" } : s
-      )
-    )
+    setEstudiantes(prev => prev.map(e => ({ ...e, estado_texto: "presente", observaciones: "" })))
   }
 
-  const goToPreviousDay = () => {
-    let newDate = subDays(selectedDate, 1)
-    // Saltar fines de semana
-    while (isWeekend(newDate)) {
-      newDate = subDays(newDate, 1)
+  const save = async () => {
+    const pendientes = estudiantes.filter(e => !e.estado_texto)
+    if (pendientes.length > 0) {
+      toast.error("Todos los estudiantes deben tener un estado antes de guardar")
+      return
     }
-    setSelectedDate(newDate)
-  }
 
-  const goToNextDay = () => {
-    let newDate = addDays(selectedDate, 1)
-    // Saltar fines de semana
-    while (isWeekend(newDate)) {
-      newDate = addDays(newDate, 1)
+    setSaving(true)
+    try {
+      const res = await fetch(`${API_URL}/api/asistencias/curso/${idCurso}`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          fecha,
+          asistencias: estudiantes.map(e => ({
+            id_estudiante: e.id_estudiante,
+            estado: estadoToDb[e.estado_texto || ""],
+            observaciones: e.observaciones || null,
+          })),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || "Error al guardar asistencia")
+      toast.success("Asistencia guardada")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Error al guardar asistencia")
+    } finally {
+      setSaving(false)
     }
-    setSelectedDate(newDate)
   }
-
-  // Días de la semana para la vista semanal
-  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 })
-  const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 })
-  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd }).filter(
-    (day) => !isWeekend(day)
-  )
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Control de Asistencia</h1>
-          <p className="text-muted-foreground">
-            Registre la asistencia diaria de los estudiantes
-          </p>
+          <p className="text-muted-foreground">Registro diario por curso y gestión activa</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Exportar
-          </Button>
-          <Button className="gap-2">
+          <Button variant="outline" onClick={markAllPresent}>Marcar presentes</Button>
+          <Button onClick={save} disabled={saving || !idCurso} className="gap-2">
             <Save className="h-4 w-4" />
             Guardar
           </Button>
         </div>
       </div>
 
-      {/* Filters and Date Picker */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-4">
-            {/* Course Selector */}
-            <div className="flex-1 min-w-0">
-              <label className="text-sm font-medium mb-2 block">Curso</label>
-              <Select value={selectedGrade} onValueChange={setSelectedGrade}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar curso" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PK-A">Pre-Kinder A</SelectItem>
-                  <SelectItem value="PK-B">Pre-Kinder B</SelectItem>
-                  <SelectItem value="K-A">Kinder A</SelectItem>
-                  <SelectItem value="K-B">Kinder B</SelectItem>
-                  <SelectItem value="1A">1ro Primaria A</SelectItem>
-                  <SelectItem value="2A">2do Primaria A</SelectItem>
-                  <SelectItem value="3A">3ro Primaria A</SelectItem>
-                  <SelectItem value="4A">4to Primaria A</SelectItem>
-                  <SelectItem value="5A">5to Primaria A</SelectItem>
-                  <SelectItem value="6A">6to Primaria A</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Date Navigation */}
-            <div className="flex-1 min-w-0">
-              <label className="text-sm font-medium mb-2 block">Fecha</label>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={goToPreviousDay}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="flex-1 justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", {
-                        locale: es,
-                      })}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={(date) => {
-                        if (date) setSelectedDate(date)
-                        setIsCalendarOpen(false)
-                      }}
-                      disabled={(date) => isWeekend(date) || date > new Date()}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={goToNextDay}
-                  disabled={isSameDay(selectedDate, new Date()) || selectedDate > new Date()}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="flex gap-2 self-end">
-              <Button variant="outline" onClick={markAllPresent} className="gap-2">
-                <UserCheck className="h-4 w-4" />
-                Todos Presentes
-              </Button>
-            </div>
-          </div>
+        <CardContent className="grid gap-4 p-4 md:grid-cols-[1fr_180px]">
+          <Select value={idCurso} onValueChange={setIdCurso}>
+            <SelectTrigger>
+              <SelectValue placeholder="Seleccionar curso" />
+            </SelectTrigger>
+            <SelectContent>
+              {cursos.map(curso => (
+                <SelectItem key={curso.id_curso} value={String(curso.id_curso)}>
+                  {curso.nombre_nivel} - {curso.nombre_grado} {curso.paralelo} · {curso.turno}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
         </CardContent>
       </Card>
 
-      {/* Week Overview */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Vista Semanal
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-5 gap-2">
-            {weekDays.map((day) => (
-              <button
-                key={day.toISOString()}
-                onClick={() => setSelectedDate(day)}
-                disabled={day > new Date()}
-                className={cn(
-                  "p-3 rounded-lg border text-center transition-colors",
-                  isSameDay(day, selectedDate)
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "hover:bg-muted",
-                  day > new Date() && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                <p className="text-xs font-medium">
-                  {format(day, "EEE", { locale: es })}
-                </p>
-                <p className="text-lg font-bold">{format(day, "d")}</p>
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-6">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
+      <div className="grid gap-4 sm:grid-cols-5">
+        {[
+          ["Total", estudiantes.length],
+          ["Presentes", stats.presente || 0],
+          ["Ausentes", stats.ausente || 0],
+          ["Tardanzas", stats.tardanza || 0],
+          ["Pendientes", stats.pendiente || 0],
+        ].map(([label, value]) => (
+          <Card key={label}>
+            <CardContent className="flex items-center justify-between p-4">
               <div>
-                <p className="text-sm text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-sm text-muted-foreground">{label}</p>
+                <p className="text-2xl font-bold">{value}</p>
               </div>
-              <Users className="h-8 w-8 text-muted-foreground/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-success">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Presentes</p>
-                <p className="text-2xl font-bold text-success">{stats.presentes}</p>
-              </div>
-              <Check className="h-8 w-8 text-success/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-destructive">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Ausentes</p>
-                <p className="text-2xl font-bold text-destructive">{stats.ausentes}</p>
-              </div>
-              <X className="h-8 w-8 text-destructive/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-amber-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Tardanzas</p>
-                <p className="text-2xl font-bold text-amber-500">{stats.tardanzas}</p>
-              </div>
-              <Clock className="h-8 w-8 text-amber-500/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-info">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Justificados</p>
-                <p className="text-2xl font-bold text-info">{stats.justificados}</p>
-              </div>
-              <AlertTriangle className="h-8 w-8 text-info/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-muted-foreground">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Pendientes</p>
-                <p className="text-2xl font-bold text-muted-foreground">{stats.pendientes}</p>
-              </div>
-              <Users className="h-8 w-8 text-muted-foreground/50" />
-            </div>
-          </CardContent>
-        </Card>
+              <Users className="h-7 w-7 text-primary/40" />
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Observation Dialog */}
-      <Dialog
-        open={observationDialog.open}
-        onOpenChange={(open) => {
-          if (!open) {
-            setObservationDialog({
-              open: false,
-              studentId: null,
-              observation: "",
-              status: null,
-            })
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              Registrar{" "}
-              {observationDialog.status && statusConfig[observationDialog.status]?.label}
-            </DialogTitle>
-            <DialogDescription>
-              Agregue una observación opcional para este registro de asistencia.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="observation">Observación (opcional)</Label>
-              <Textarea
-                id="observation"
-                placeholder="Ej: Llegó 10 minutos tarde, Cita médica, etc."
-                value={observationDialog.observation}
-                onChange={(e) =>
-                  setObservationDialog((prev) => ({
-                    ...prev,
-                    observation: e.target.value,
-                  }))
-                }
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() =>
-                setObservationDialog({
-                  open: false,
-                  studentId: null,
-                  observation: "",
-                  status: null,
-                })
-              }
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveObservation}>Guardar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Attendance Table */}
       <Card>
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>3ro Primaria A</CardTitle>
-              <CardDescription>
-                {format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
-              </CardDescription>
-            </div>
-            <Badge
-              variant={stats.pendientes === 0 ? "default" : "secondary"}
-              className="gap-1"
-            >
-              {stats.pendientes === 0 ? (
-                <>
-                  <Check className="h-3 w-3" />
-                  Completo
-                </>
-              ) : (
-                `${stats.pendientes} pendientes`
-              )}
-            </Badge>
-          </div>
+        <CardHeader>
+          <CardTitle>Estudiantes</CardTitle>
+          <CardDescription>{loading ? "Cargando..." : `${estudiantes.length} estudiantes inscritos`}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3 md:hidden">
-            {students.map((student, index) => (
-              <div key={student.id} className="rounded-lg border p-4 space-y-2">
-                <p className="font-medium">{index + 1}. {student.name}</p>
-                <p className="text-sm text-muted-foreground">CI: {student.ci}</p>
-                <div className="flex gap-1">
-                  {(Object.entries(statusConfig) as [Exclude<AttendanceStatus, null>, (typeof statusConfig)[keyof typeof statusConfig]][]).map(([status, config]) => {
-                    const Icon = config.icon
-                    const isActive = student.attendance === status
-                    return (
-                      <Button
-                        key={status}
-                        variant="outline"
-                        size="sm"
-                        className={cn("h-8 w-8 p-0 border-2", isActive && config.bg)}
-                        onClick={() => handleAttendanceChange(student.id, status)}
-                        title={config.label}
-                      >
-                        <Icon className={cn("h-4 w-4", isActive ? config.color : "text-muted-foreground")} />
-                      </Button>
-                    )
-                  })}
-                </div>
-                <p className="text-sm text-muted-foreground">{student.observation || "-"}</p>
-              </div>
-            ))}
-          </div>
-          <div className="hidden md:block rounded-md border">
+          <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[50px]">#</TableHead>
                   <TableHead>Estudiante</TableHead>
                   <TableHead>CI</TableHead>
-                  <TableHead className="text-center">Estado</TableHead>
-                  <TableHead>Observación</TableHead>
+                  <TableHead className="w-[190px]">Estado</TableHead>
+                  <TableHead>Observaciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {students.map((student, index) => (
-                  <TableRow key={student.id}>
-                    <TableCell className="font-medium text-muted-foreground">
-                      {index + 1}
+                {estudiantes.map(estudiante => (
+                  <TableRow key={estudiante.id_estudiante}>
+                    <TableCell className="font-medium">{estudiante.apellido} {estudiante.nombre}</TableCell>
+                    <TableCell>{estudiante.ci || "-"}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={estudiante.estado_texto || ""}
+                        onValueChange={(value: Estado) => updateStudent(estudiante.id_estudiante, { estado_texto: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pendiente" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="presente">Presente</SelectItem>
+                          <SelectItem value="ausente">Ausente</SelectItem>
+                          <SelectItem value="tardanza">Tardanza</SelectItem>
+                          <SelectItem value="justificado">Justificado</SelectItem>
+                          <SelectItem value="licencia">Licencia</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="text-xs">
-                            {student.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .slice(0, 2)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium">{student.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {student.ci}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-center gap-1">
-                        {(
-                          Object.entries(statusConfig) as [
-                            Exclude<AttendanceStatus, null>,
-                            (typeof statusConfig)[keyof typeof statusConfig]
-                          ][]
-                        ).map(([status, config]) => {
-                          const Icon = config.icon
-                          const isActive = student.attendance === status
-                          return (
-                            <Button
-                              key={status}
-                              variant="outline"
-                              size="sm"
-                              className={cn(
-                                "h-8 w-8 p-0 border-2",
-                                isActive && config.bg
-                              )}
-                              onClick={() => handleAttendanceChange(student.id, status)}
-                              title={config.label}
-                            >
-                              <Icon
-                                className={cn(
-                                  "h-4 w-4",
-                                  isActive ? config.color : "text-muted-foreground"
-                                )}
-                              />
-                            </Button>
-                          )
-                        })}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                      {student.observation || "-"}
+                      <Input
+                        value={estudiante.observaciones || ""}
+                        onChange={e => updateStudent(estudiante.id_estudiante, { observaciones: e.target.value })}
+                        placeholder="Opcional"
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
+                {!loading && estudiantes.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
+                      No hay estudiantes inscritos en este curso.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Attendance Legend */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-6 text-sm">
-            <span className="font-medium text-muted-foreground">Leyenda:</span>
-            {Object.entries(statusConfig).map(([status, config]) => {
-              const Icon = config.icon
-              return (
-                <div key={status} className="flex items-center gap-2">
-                  <div
-                    className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded border-2",
-                      config.bg
-                    )}
-                  >
-                    <Icon className={cn("h-3 w-3", config.color)} />
-                  </div>
-                  <span>{config.label}</span>
-                </div>
-              )
-            })}
-          </div>
+          {stats.pendiente ? <Badge variant="outline" className="mt-4">Hay estudiantes pendientes de marcar</Badge> : null}
         </CardContent>
       </Card>
     </div>

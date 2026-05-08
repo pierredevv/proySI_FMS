@@ -33,5 +33,12 @@ const esAdminODirector = (req, res, next) => {
     next();
 };
 
-module.exports = { verificarToken, esSuperUsuario, esAdminODirector };
+const esAdminDirectorOSecretaria = (req, res, next) => {
+    if (!req.usuario || ![1, 2, 4].includes(req.usuario.role)) {
+        return res.status(403).json({ message: 'Operación rechazada. No tiene los permisos de gestión necesarios.' });
+    }
+    next();
+};
+
+module.exports = { verificarToken, esSuperUsuario, esAdminODirector, esAdminDirectorOSecretaria };
 

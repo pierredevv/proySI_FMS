@@ -55,10 +55,13 @@ export default function LoginPage() {
         throw new Error(data.message || "Error al iniciar sesión");
       }
 
-      // Guardar token y rol
       localStorage.setItem("token", data.token);
       localStorage.setItem("userRole", String(data.role)); // El id de rol real devuelto por la BD
       localStorage.setItem("userName", formData.username);
+      localStorage.setItem(
+        "userFuncionalidades",
+        JSON.stringify(data.funcionalidades || []),
+      );
 
       router.push("/dashboard");
     } catch (err: any) {
@@ -69,15 +72,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
+    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <div className="w-full max-w-md">
         {/* Logo y título */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
             <GraduationCap className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">EduGestión</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h1 className="font-sans text-2xl font-bold text-foreground">
+            EduGestión
+          </h1>
+          <p className="font-sans text-muted-foreground text-sm mt-1">
             Sistema de Gestión Escolar
           </p>
         </div>
@@ -147,9 +152,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Omitted Role Select */}
-
-              {/* Error message */}
               {error && (
                 <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
                   {error}
@@ -168,13 +170,11 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
-
-            {/* Demo credentials omitted */}
           </CardContent>
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          © 2026 EduGestión - Todos los derechos reservados
+          © 2025 EduGestión - Todos los derechos reservados
         </p>
       </div>
     </div>

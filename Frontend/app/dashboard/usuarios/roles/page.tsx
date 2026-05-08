@@ -38,7 +38,7 @@ export default function RolesPage() {
   // Form state
   const [nombreRol, setNombreRol] = useState("")
   const [descripcion, setDescripcion] = useState("")
-  const [selectedPermisos, setSelectedPermisos] = useState<number[]>([])
+  const [selectedFuncionalidades, setSelectedFuncionalidades] = useState<number[]>([])
   const [formError, setFormError] = useState("")
 
   useEffect(() => {
@@ -69,8 +69,8 @@ export default function RolesPage() {
     e.preventDefault()
     setFormError("")
     
-    if (!nombreRol || selectedPermisos.length === 0) {
-      setFormError("El nombre del rol y al menos un permiso son requeridos.")
+    if (!nombreRol || selectedFuncionalidades.length === 0) {
+      setFormError("El nombre del rol y al menos una funcionalidad son requeridos.")
       return
     }
 
@@ -85,7 +85,7 @@ export default function RolesPage() {
         body: JSON.stringify({
           nombre_rol: nombreRol,
           descripcion,
-          permisos: selectedPermisos
+          funcionalidades: selectedFuncionalidades
         })
       })
 
@@ -98,7 +98,7 @@ export default function RolesPage() {
       setIsDialogOpen(false)
       setNombreRol("")
       setDescripcion("")
-      setSelectedPermisos([])
+      setSelectedFuncionalidades([])
       fetchData()
     } catch (error) {
       setFormError("Error de conexión.")
@@ -126,8 +126,8 @@ export default function RolesPage() {
     }
   }
 
-  const togglePermiso = (id: number) => {
-    setSelectedPermisos(prev => 
+  const toggleFuncionalidad = (id: number) => {
+    setSelectedFuncionalidades(prev => 
       prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
     )
   }
@@ -189,25 +189,43 @@ export default function RolesPage() {
               </div>
 
               <div className="space-y-3 pt-2">
-                <Label>Permisos del Sistema *</Label>
+                <Label>Funcionalidades del Sistema *</Label>
                 <div className="border rounded-md p-4 space-y-4">
                   {modulos.map(modulo => (
                     <div key={modulo} className="space-y-2">
                       <h4 className="font-medium text-sm text-primary capitalize">{modulo}</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 gap-2">
                         {permisos.filter(p => p.modulo === modulo).map(permiso => (
-                          <div key={permiso.id_permiso} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={`permiso-${permiso.id_permiso}`} 
-                              checked={selectedPermisos.includes(permiso.id_permiso)}
-                              onCheckedChange={() => togglePermiso(permiso.id_permiso)}
-                            />
-                            <Label 
-                              htmlFor={`permiso-${permiso.id_permiso}`}
-                              className="text-sm font-normal cursor-pointer"
-                            >
-                              {permiso.nombre_permiso}
-                            </Label>
+                          <div key={`${modulo}-${permiso.id_permiso}`} className="rounded-md border p-3 space-y-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium">{permiso.nombre_permiso}</p>
+                              {permiso.descripcion && (
+                                <p className="text-xs text-muted-foreground">{permiso.descripcion}</p>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {permiso.funcionalidades?.map((funcionalidad: any) => (
+                                <div key={funcionalidad.id_funcionalidad} className="flex items-start space-x-2 rounded-md bg-muted/40 p-2">
+                                  <Checkbox
+                                    id={`funcionalidad-${funcionalidad.id_funcionalidad}`}
+                                    checked={selectedFuncionalidades.includes(funcionalidad.id_funcionalidad)}
+                                    onCheckedChange={() => toggleFuncionalidad(funcionalidad.id_funcionalidad)}
+                                    className="mt-0.5"
+                                  />
+                                  <div className="min-w-0 space-y-1">
+                                    <Label
+                                      htmlFor={`funcionalidad-${funcionalidad.id_funcionalidad}`}
+                                      className="text-xs font-normal cursor-pointer"
+                                    >
+                                      {funcionalidad.descripcion || funcionalidad.metodo}
+                                    </Label>
+                                    <p className="text-[11px] text-muted-foreground break-all">
+                                      {funcionalidad.metodo}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -248,7 +266,7 @@ export default function RolesPage() {
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground">{rol.descripcion || "-"}</p>
-                  <p className="text-sm"><span className="font-medium">Permisos:</span> {rol.cantidad_permisos}</p>
+                  <p className="text-sm"><span className="font-medium">Funcionalidades:</span> {rol.cantidad_funcionalidades ?? 0}</p>
                   {rol.id_rol !== 1 && (
                     <Button variant="destructive" size="sm" onClick={() => handleDeleteRole(rol.id_rol)} className="w-full">
                       Eliminar
@@ -265,7 +283,7 @@ export default function RolesPage() {
                 <TableHead className="w-[80px]">ID</TableHead>
                 <TableHead>Nombre</TableHead>
                 <TableHead className="hidden md:table-cell">Descripción</TableHead>
-                <TableHead>Permisos</TableHead>
+                <TableHead>Funcionalidades</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
@@ -293,7 +311,7 @@ export default function RolesPage() {
                     </TableCell>
                     <TableCell>
                       <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                        {rol.cantidad_permisos} permisos
+                        {rol.cantidad_funcionalidades ?? 0} metodos
                       </div>
                     </TableCell>
                     <TableCell>

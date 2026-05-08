@@ -1,57 +1,51 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { GraduationCap, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
-import { API_URL } from "@/lib/api";
-import { PASSWORD_HINT, validatePasswordStrength } from "@/lib/password-policy";
+import { useState } from "react"
+import Link from "next/link"
+import { useParams, useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { GraduationCap, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react"
+import { API_URL } from "@/lib/api"
+import { PASSWORD_HINT, validatePasswordStrength } from "@/lib/password-policy"
 
 export default function ResetPasswordPage() {
-  const params = useParams();
-  const router = useRouter();
-  const token = params.token as string;
+  const params = useParams()
+  const router = useRouter()
+  const token = params.token as string
 
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [message, setMessage] = useState("")
+  const [error, setError] = useState("")
+  const [isSuccess, setIsSuccess] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setMessage("");
-
+    e.preventDefault()
+    setError("")
+    setMessage("")
+    
     if (!password || !confirmPassword) {
-      setError("Por favor complete todos los campos");
-      return;
+      setError("Por favor complete todos los campos")
+      return
     }
 
     if (password !== confirmPassword) {
-      setError("Las contraseñas no coinciden");
-      return;
+      setError("Las contraseñas no coinciden")
+      return
     }
-    const passwordError = validatePasswordStrength(password);
+    const passwordError = validatePasswordStrength(password)
     if (passwordError) {
-      setError(passwordError);
-      return;
+      setError(passwordError)
+      return
     }
 
-    setIsLoading(true);
-
+    setIsLoading(true)
+    
     try {
       const response = await fetch(`${API_URL}/api/auth/reset-password`, {
         method: "POST",
@@ -59,27 +53,27 @@ export default function ResetPasswordPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ token, newPassword: password }),
-      });
+      })
 
-      const data = await response.json();
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.message || "Error al restablecer la contraseña");
+        throw new Error(data.message || "Error al restablecer la contraseña")
       }
 
-      setMessage(data.message);
-      setIsSuccess(true);
-
+      setMessage(data.message)
+      setIsSuccess(true)
+      
       // Opcionalmente redirigir después de unos segundos
       setTimeout(() => {
-        router.push("/login");
-      }, 3000);
+        router.push("/login")
+      }, 3000)
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
@@ -90,16 +84,12 @@ export default function ResetPasswordPage() {
             <GraduationCap className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">EduGestión</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Sistema de Gestión Escolar
-          </p>
+          <p className="text-muted-foreground text-sm mt-1">Sistema de Gestión Escolar</p>
         </div>
 
         <Card className="border-0 shadow-xl">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl text-center">
-              Restablecer Contraseña
-            </CardTitle>
+            <CardTitle className="text-xl text-center">Restablecer Contraseña</CardTitle>
             <CardDescription className="text-center">
               Ingrese su nueva contraseña
             </CardDescription>
@@ -110,9 +100,7 @@ export default function ResetPasswordPage() {
                 {/* Nueva Contraseña */}
                 <div className="space-y-2">
                   <Label htmlFor="password">Nueva Contraseña</Label>
-                  <p className="text-xs text-muted-foreground">
-                    {PASSWORD_HINT}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -127,11 +115,7 @@ export default function ResetPasswordPage() {
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
@@ -177,24 +161,19 @@ export default function ResetPasswordPage() {
                 </Button>
               </form>
             ) : (
-              <div className="text-center py-6 space-y-4">
-                <div className="text-green-600 bg-green-50 border border-green-200 p-4 rounded-lg">
-                  {message}
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Serás redirigido al inicio de sesión...
-                </p>
-                <Button asChild className="w-full">
-                  <Link href="/login">Ir a Iniciar Sesión</Link>
-                </Button>
-              </div>
+               <div className="text-center py-6 space-y-4">
+                 <div className="text-green-600 bg-green-50 border border-green-200 p-4 rounded-lg">
+                   {message}
+                 </div>
+                 <p className="text-sm text-muted-foreground">Serás redirigido al inicio de sesión...</p>
+                 <Button asChild className="w-full">
+                    <Link href="/login">Ir a Iniciar Sesión</Link>
+                 </Button>
+               </div>
             )}
-
+            
             <div className="mt-6 text-center">
-              <Link
-                href="/login"
-                className="inline-flex items-center text-sm font-medium text-primary hover:underline"
-              >
+              <Link href="/login" className="inline-flex items-center text-sm font-medium text-primary hover:underline">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Volver al inicio de sesión
               </Link>
@@ -203,9 +182,9 @@ export default function ResetPasswordPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          © 2026 EduGestión - Todos los derechos reservados
+          © 2025 EduGestión - Todos los derechos reservados
         </p>
       </div>
     </div>
-  );
+  )
 }

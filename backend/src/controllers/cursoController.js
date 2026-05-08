@@ -1,14 +1,16 @@
 const pool = require("../config/db");
 
+// ========== CU08: Crear Curso ==========
 const crearCurso = async (req, res) => {
   const { id_grado, paralelo, id_aula, id_profesor, turno } = req.body;
 
+  // Usar la gestión activa ya obtenida por el middleware
   const id_gestion = req.gestionActiva.id_gestion;
 
   try {
     const result = await pool.query(
-      `INSERT INTO curso (id_grado, paralelo, id_aula, id_gestion, id_profesor, turno)
-             VALUES ($1, UPPER($2), $3, $4, $5, $6)
+      `INSERT INTO curso (id_grado, paralelo, id_aula, id_gestion, id_profesor, turno, estado)
+             VALUES ($1, UPPER($2), $3, $4, $5, $6, true)
              RETURNING id_curso`,
       [id_grado, paralelo, id_aula, id_gestion, id_profesor, turno],
     );
@@ -55,17 +57,20 @@ const crearCurso = async (req, res) => {
     res.status(500).json({ error: "Error interno del servidor" });
   }
 };
+
 const obtenerDatosFormularioCurso = async (req, res) => {
   try {
     const gestionActiva = await pool.query(
       `SELECT id_gestion, anio FROM gestion_academica 
              WHERE estado = 'activa' LIMIT 1`,
     );
+
     const niveles = await pool.query(
       `SELECT id_nivel, nombre_nivel, monto_mensualidad 
              FROM nivel 
              ORDER BY id_nivel`,
     );
+
     const grados = await pool.query(
       `SELECT g.id_grado, g.nombre_grado, g.id_nivel, n.nombre_nivel
              FROM grado g
@@ -84,6 +89,7 @@ const obtenerDatosFormularioCurso = async (req, res) => {
                         SELECT 1 FROM curso c 
                         WHERE c.id_aula = a.id_aula 
                         AND c.id_gestion = $1
+                        AND c.estado = true
                     ) THEN 'ocupado'
                     ELSE 'disponible'
                 END as estado
@@ -128,6 +134,7 @@ const obtenerCursos = async (req, res) => {
                 c.id_curso,
                 c.paralelo,
                 c.turno,
+                c.estado as curso_estado,
                 g.id_grado,
                 g.nombre_grado,
                 n.id_nivel,
@@ -169,7 +176,7 @@ const obtenerCursos = async (req, res) => {
       params.push(id_nivel);
     }
     if (activo === "true") {
-      query += ` AND gest.estado = 'activa'`;
+      query += ` AND c.estado = true`;
     }
 
     query += ` GROUP BY c.id_curso, g.id_grado, g.nombre_grado, n.id_nivel, n.nombre_nivel,
@@ -188,6 +195,7 @@ const obtenerCursos = async (req, res) => {
   }
 };
 
+// ========== Obtener detalle de un curso específico ==========
 const obtenerCursoPorId = async (req, res) => {
   const { id_curso } = req.params;
 
@@ -197,6 +205,7 @@ const obtenerCursoPorId = async (req, res) => {
                 c.id_curso,
                 c.paralelo,
                 c.turno,
+                c.estado as curso_estado,
                 g.id_grado,
                 g.nombre_grado,
                 n.id_nivel,
@@ -240,10 +249,12 @@ const obtenerCursoPorId = async (req, res) => {
   }
 };
 
+// ========== Editar curso (FA-02) ==========
 const editarCurso = async (req, res) => {
   const { id_curso } = req.params;
   const { id_aula, turno, id_profesor } = req.body;
 
+  // Verificar si el middleware ya validó que no hay inscripciones
   const tieneInscripciones = req.tieneInscripciones || false;
 
   try {
@@ -304,10 +315,12 @@ const editarCurso = async (req, res) => {
   }
 };
 
+// ========== Duplicar curso (FA-01) ==========
 const duplicarCurso = async (req, res) => {
   const { id_curso } = req.params;
 
   try {
+    // Obtener el curso original
     const cursoOriginal = await pool.query(
       `SELECT id_grado, id_aula, id_gestion, turno 
              FROM curso 
@@ -321,9 +334,10 @@ const duplicarCurso = async (req, res) => {
 
     const original = cursoOriginal.rows[0];
 
+    // Crear nuevo curso sin paralelo y sin profesor
     const result = await pool.query(
-      `INSERT INTO curso (id_grado, paralelo, id_aula, id_gestion, id_profesor, turno)
-             VALUES ($1, '', $2, $3, NULL, $4)
+      `INSERT INTO curso (id_grado, paralelo, id_aula, id_gestion, id_profesor, turno, estado)
+             VALUES ($1, '', $2, $3, NULL, $4, true)
              RETURNING id_curso`,
       [
         original.id_grado,
@@ -358,14 +372,14 @@ const eliminarCurso = async (req, res) => {
   try {
     // Verificar inscripciones
     const inscripcionesCheck = await pool.query(
-      `SELECT COUNT(*) as total FROM inscripcion WHERE id_curso = $1`,
+      `SELECT COUNT(*) as total FROM inscripcion WHERE id_curso = $1 AND estado = 'inscrito'`,
       [id_curso],
     );
 
     if (parseInt(inscripcionesCheck.rows[0].total) > 0) {
       return res.status(409).json({
         error:
-          "No se puede eliminar el curso porque tiene inscripciones registradas",
+          "No se puede eliminar el curso porque tiene inscripciones activas",
         code: "COURSE_HAS_INSCRIPTIONS",
       });
     }
@@ -383,11 +397,34 @@ const eliminarCurso = async (req, res) => {
       });
     }
 
-    await pool.query("DELETE FROM curso WHERE id_curso = $1", [id_curso]);
+    // En lugar de eliminar físicamente, desactivar el curso
+    await pool.query("UPDATE curso SET estado = false WHERE id_curso = $1", [
+      id_curso,
+    ]);
 
-    res.json({ message: "Curso eliminado correctamente" });
+    res.json({ message: "Curso desactivado correctamente" });
   } catch (error) {
     console.error("Error en eliminarCurso:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
+const activarCurso = async (req, res) => {
+  const { id_curso } = req.params;
+
+  try {
+    const result = await pool.query(
+      "UPDATE curso SET estado = true WHERE id_curso = $1 RETURNING id_curso",
+      [id_curso],
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Curso no encontrado" });
+    }
+
+    res.json({ message: "Curso activado correctamente" });
+  } catch (error) {
+    console.error("Error en activarCurso:", error);
     res.status(500).json({ error: "Error interno del servidor" });
   }
 };
@@ -400,4 +437,5 @@ module.exports = {
   editarCurso,
   duplicarCurso,
   eliminarCurso,
+  activarCurso,
 };

@@ -1,11 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const {
+    getEstructura,
     getAulas, createAula, updateAula,
     getNiveles, createNivel, updateNivel,
     getGrados, createGrado, updateGrado
 } = require('../controllers/estructuraController');
 const { verificarToken, esAdminODirector } = require('../middlewares/authMiddleware');
+
+router.get('/', verificarToken, esAdminODirector, getEstructura);
 
 router.get('/aulas', verificarToken, esAdminODirector, getAulas);
 router.post('/aulas', verificarToken, esAdminODirector, createAula);

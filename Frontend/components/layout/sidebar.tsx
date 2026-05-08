@@ -23,7 +23,6 @@ import {
   Bell,
   ShieldCheck,
   FileText,
-  Settings,
   ChevronDown,
   ChevronLeft,
   LogOut,
@@ -31,7 +30,6 @@ import {
   School,
   BookOpen,
   DollarSign,
-  Receipt,
   Boxes,
   ArrowRightLeft,
   Megaphone,
@@ -40,6 +38,9 @@ import {
   History,
   DoorOpen,
   CalendarCheck,
+  Lock,
+  Truck,
+  MessageSquare,
 } from "lucide-react"
 
 interface NavItem {
@@ -57,58 +58,75 @@ const navItems: NavItem[] = [
     icon: LayoutDashboard,
     roles: [1, 2, 3, 4, 5],
   },
+  // 1. SEGURIDAD
   {
-    title: "Usuarios",
-    icon: Users,
-    roles: [1, 2], // 1: SuperUsuario, 2: Director
+    title: "Seguridad",
+    icon: Lock,
+    roles: [1, 2],
     children: [
       { title: "Gestión de Usuarios", href: "/dashboard/usuarios", icon: UserCog, roles: [1] },
       { title: "Roles y Permisos", href: "/dashboard/usuarios/roles", icon: ShieldCheck, roles: [1] },
+      { title: "Bitácora", href: "/dashboard/bitacora", icon: History, roles: [1] },
       { title: "Personal Docente", href: "/dashboard/usuarios/docentes", icon: GraduationCap, roles: [1, 2] },
     ],
   },
+  // 2. ESTUDIANTES
   {
-    title: "Estructura Académica",
-    icon: School,
-    roles: [1, 2],
+    title: "Estudiantes",
+    icon: Users,
+    roles: [1, 2, 3, 4],
     children: [
       { title: "Gestión Académica", href: "/dashboard/gestiones", icon: CalendarCheck, roles: [1, 2] },
       { title: "Niveles y Aulas", href: "/dashboard/aulas", icon: DoorOpen, roles: [1, 2] },
       { title: "Campos y Materias", href: "/dashboard/materias", icon: BookOpen, roles: [1, 2] },
+      { title: "Cursos", href: "/dashboard/cursos", icon: School, roles: [1, 2] },
+      { title: "Horarios", href: "/dashboard/horarios", icon: CalendarCheck, roles: [1, 2, 4] },
+      { title: "Estudiantes", href: "/dashboard/estudiantes", icon: GraduationCap, roles: [1, 2, 4] },
+      { title: "Inscripciones", href: "/dashboard/inscripciones", icon: ClipboardList, roles: [1, 2, 4] },
+      { title: "Tutores", href: "/dashboard/tutores", icon: UserCheck, roles: [1, 2, 4] },
+      { title: "Expedientes", href: "/dashboard/expedientes", icon: FileText, roles: [1, 2, 3, 4] },
+      { title: "Asistencia", href: "/dashboard/asistencia", icon: UserCheck, roles: [1, 2, 3] },
+      { title: "Calificaciones", href: "/dashboard/calificaciones", icon: GraduationCap, roles: [1, 2, 3] },
+      { title: "Notas", href: "/dashboard/notas", icon: FileText, roles: [1, 2, 3] },
     ],
   },
-  /* -- OCULTOS PARA EL CICLO 1 --
+  // 3. FINANZAS
   {
-    title: "Estudiantes",
-    icon: School,
+    title: "Finanzas",
+    icon: DollarSign,
+    roles: [1, 2, 4],
     children: [
-      { title: "Expedientes", href: "/dashboard/estudiantes", icon: Users },
-      { title: "Inscripciones", href: "/dashboard/estudiantes/inscripciones", icon: ClipboardList },
-      { title: "Tutores", href: "/dashboard/tutores", icon: UserCheck },
+      { title: "Pagos", href: "/dashboard/pagos", icon: CreditCard, roles: [1, 2, 4] },
+      { title: "Reportes", href: "/dashboard/reportes", icon: BarChart3, roles: [1, 2, 4] },
     ],
   },
-  {
-    title: "Académico",
-    icon: BookOpen,
-    children: [
-      { title: "Calificaciones", href: "/dashboard/calificaciones", icon: ClipboardList },
-      { title: "Asistencia", href: "/dashboard/asistencia", icon: CalendarCheck },
-      { title: "Notas (Simple)", href: "/dashboard/notas", icon: FileText },
-    ],
-  },
-  {
-    title: "Pagos",
-    icon: CreditCard,
-    children: [
-      { title: "Registro de Pagos", href: "/dashboard/pagos", icon: DollarSign },
-      { title: "Estados de Cuenta", href: "/dashboard/pagos/estados", icon: Receipt },
-      { title: "Comprobantes", href: "/dashboard/pagos/comprobantes", icon: FileText },
-    ],
-  },
+  // 4. INVENTARIO
   {
     title: "Inventario",
-    ...
-  */
+    icon: Boxes,
+    roles: [1, 2, 4],
+    children: [
+      { title: "Inventario", href: "/dashboard/inventario", icon: Package, roles: [1, 2, 4] },
+    ],
+  },
+  // 5. ENTREGA
+  {
+    title: "Entrega",
+    icon: Truck,
+    roles: [1, 2, 4],
+    children: [
+      { title: "Entregas", href: "/dashboard/entregas", icon: ArrowRightLeft, roles: [1, 2, 4] },
+    ],
+  },
+  // 6. COMUNICACIÓN
+  {
+    title: "Comunicación",
+    icon: MessageSquare,
+    roles: [1, 2, 3, 4],
+    children: [
+      { title: "Avisos", href: "/dashboard/comunicacion", icon: Megaphone, roles: [1, 2, 3, 4] },
+    ],
+  },
 ]
 
 interface SidebarProps {
@@ -144,10 +162,9 @@ export function Sidebar({ isCollapsed, isMobile, isMobileOpen, onToggle, onClose
   const isParentActive = (children?: { href: string }[]) =>
     children?.some(child => pathname.startsWith(child.href))
 
-  // Filter items based on user role
   const filteredNavItems = navItems.filter(item => {
     if (!item.roles) return true
-    if (userRole === null) return true // Wait for useEffect or just show all until resolved
+    if (userRole === null) return true
     return item.roles.includes(userRole)
   }).map(item => {
     if (item.children) {
@@ -158,14 +175,12 @@ export function Sidebar({ isCollapsed, isMobile, isMobileOpen, onToggle, onClose
     }
     return item
   }).filter(item => {
-    if (item.children && item.children.length === 0) return false;
-    return true;
+    if (item.children && item.children.length === 0) return false
+    return true
   })
 
   const handleNavClick = () => {
-    if (isMobile) {
-      onCloseMobile()
-    }
+    if (isMobile) onCloseMobile()
   }
 
   return (
@@ -234,7 +249,9 @@ export function Sidebar({ isCollapsed, isMobile, isMobileOpen, onToggle, onClose
               </Avatar>
               <div className="flex-1 overflow-hidden">
                 <p className="truncate text-sm font-medium">{userName}</p>
-                <p className="truncate text-xs text-sidebar-foreground/70">{userRole === 1 ? 'SuperUsuario' : userRole === 2 ? 'Director' : 'Personal'}</p>
+                <p className="truncate text-xs text-sidebar-foreground/70">
+                  {userRole === 1 ? 'SuperUsuario' : userRole === 2 ? 'Director' : 'Personal'}
+                </p>
               </div>
             </div>
           ) : (

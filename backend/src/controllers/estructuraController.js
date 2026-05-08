@@ -1,5 +1,28 @@
 const pool = require('../config/db');
 
+const getEstructura = async (_req, res) => {
+    try {
+        const [niveles, grados, aulas] = await Promise.all([
+            pool.query('SELECT * FROM nivel ORDER BY id_nivel'),
+            pool.query(`
+                SELECT g.id_grado, g.nombre_grado, n.nombre_nivel, g.id_nivel
+                FROM grado g
+                JOIN nivel n ON g.id_nivel = n.id_nivel
+                ORDER BY g.id_nivel, g.id_grado
+            `),
+            pool.query('SELECT * FROM aula ORDER BY numero_aula')
+        ]);
+
+        res.json({
+            niveles: niveles.rows,
+            grados: grados.rows,
+            aulas: aulas.rows
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener la estructura academica', error: error.message });
+    }
+};
+
 const getAulas = async (req, res) => {
     try {
         const aulas = await pool.query('SELECT * FROM aula ORDER BY numero_aula');
@@ -177,6 +200,7 @@ const updateGrado = async (req, res) => {
 };
 
 module.exports = {
+    getEstructura,
     getAulas, createAula, updateAula,
     getNiveles, createNivel, updateNivel,
     getGrados, createGrado, updateGrado

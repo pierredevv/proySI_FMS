@@ -5,10 +5,31 @@ const crypto = require('crypto');
 const transporter = require('../config/mailer');
 const { validatePasswordStrength } = require('../utils/passwordPolicy');
 const { isLimited, clearLimit } = require('../utils/rateLimiter');
+const { registrarBitacora, getClientIp } = require('../utils/bitacora');
 
 const LOGIN_LIMIT_WINDOW_MS = 60 * 1000;
 const FORGOT_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const RESET_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+
+const me = async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT u.id_usuario, u.username, u.email, u.id_rol, r.nombre_rol
+             FROM usuario u
+             JOIN rol r ON r.id_rol = u.id_rol
+             WHERE u.id_usuario = $1 AND u.estado = TRUE`,
+            [req.usuario.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Usuario no encontrado o inactivo' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener el usuario autenticado', error: error.message });
+    }
+};
 
 const login = async (req, res) => {
     const { username, password } = req.body;
@@ -62,6 +83,34 @@ const login = async (req, res) => {
             [user.id_usuario]
         );
         clearLimit(loginKey);
+        await registrarBitacora({
+            id_usuario: user.id_usuario,
+            nombre_modulo: 'seguridad',
+            nombre_permiso: 'ver_bitacora',
+            metodo: 'POST /api/auth/login',
+            accion: 'LOGIN',
+            tabla_afectada: 'usuario',
+            id_registro_afectado: user.id_usuario,
+            descripcion: `Inicio de sesion de ${user.username}`,
+            ip_origen: getClientIp(req)
+        });
+
+        const funcionalidadesResult = await pool.query(`
+            SELECT
+                f.id_funcionalidad,
+                f.metodo,
+                f.descripcion,
+                p.nombre_permiso,
+                m.nombre_modulo
+            FROM rol_funcionalidad rf
+            JOIN funcionalidad f ON f.id_funcionalidad = rf.id_funcionalidad
+            JOIN permiso p ON p.id_permiso = f.id_permiso
+            JOIN modulo m ON m.id_modulo = f.id_modulo
+            WHERE rf.id_rol = $1
+              AND f.estado = TRUE
+              AND m.estado = TRUE
+            ORDER BY m.nombre_modulo, f.metodo
+        `, [user.id_rol]);
 
         const token = jwt.sign(
             { id: user.id_usuario, role: user.id_rol },
@@ -69,7 +118,12 @@ const login = async (req, res) => {
             { expiresIn: '2h' }
         )
 
-        res.json({ message: 'Inicio de sesion exitoso gogo', token, role: user.id_rol });
+        res.json({
+            message: 'Inicio de sesion exitoso gogo',
+            token,
+            role: user.id_rol,
+            funcionalidades: funcionalidadesResult.rows
+        });
 
     } catch (error) {
         res.status(500).json({ message: 'Error en el servidor', error: error.message });
@@ -164,8 +218,22 @@ const resetPassword = async (req, res) => {
     }
 };
 
-const logout = (req, res) => {
+const logout = async (req, res) => {
+    if (req.usuario?.id) {
+        await registrarBitacora({
+            id_usuario: req.usuario.id,
+            nombre_modulo: 'seguridad',
+            nombre_permiso: 'ver_bitacora',
+            metodo: 'POST /api/auth/logout',
+            accion: 'LOGOUT',
+            tabla_afectada: 'usuario',
+            id_registro_afectado: req.usuario.id,
+            descripcion: 'Cierre de sesion',
+            ip_origen: getClientIp(req)
+        });
+    }
+
     res.json({ message: 'Cierre de sesion existoso. Se debe eliminar el token en el cliente (front) eso hace yimy' })
 }
 
-module.exports = { login, forgotPassword, resetPassword, logout };
+module.exports = { me, login, forgotPassword, resetPassword, logout };
