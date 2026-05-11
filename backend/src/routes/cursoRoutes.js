@@ -19,6 +19,7 @@ const {
   editarCurso,
   duplicarCurso,
   eliminarCurso,
+  activarCurso,
 } = require("../controllers/cursoController");
 router.use(verificarToken);
 
@@ -56,5 +57,8 @@ router.put(
 router.post("/cursos/:id_curso/duplicar", esAdminODirector, duplicarCurso);
 
 router.delete("/cursos/:id_curso", esAdminODirector, eliminarCurso);
+
+// Activar un curso previamente desactivado
+router.patch("/cursos/:id_curso/activar", esAdminODirector, activarCurso);
 
 module.exports = router;
