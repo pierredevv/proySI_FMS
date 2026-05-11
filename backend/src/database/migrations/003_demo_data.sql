@@ -317,13 +317,13 @@ INSERT INTO movimiento_inventario (id_material, tipo_movimiento, cantidad, id_us
 SELECT m.id_material, datos.tipo_movimiento, datos.cantidad, u.id_usuario, datos.observaciones
 FROM (
     VALUES
-        ('Cuadernos rayados 100 hojas', 'entrada', 120, 'Carga demo: cuadernos'),
-        ('Lapices HB', 'entrada', 250, 'Carga demo: lapices'),
-        ('Tizas blancas', 'entrada', 60, 'Carga demo: tizas'),
-        ('Sillas escolares', 'entrada', 35, 'Carga demo: sillas'),
-        ('Mesas escolares', 'entrada', 20, 'Carga demo: mesas'),
-        ('Cuadernos rayados 100 hojas', 'salida', 12, 'Entrega demo a 1ro A')
-) AS datos(nombre_item, tipo_movimiento, cantidad, observaciones)
+        (1, 'Cuadernos rayados 100 hojas', 'entrada', 120, 'Carga demo: cuadernos'),
+        (2, 'Lapices HB', 'entrada', 250, 'Carga demo: lapices'),
+        (3, 'Tizas blancas', 'entrada', 60, 'Carga demo: tizas'),
+        (4, 'Sillas escolares', 'entrada', 35, 'Carga demo: sillas'),
+        (5, 'Mesas escolares', 'entrada', 20, 'Carga demo: mesas'),
+        (6, 'Cuadernos rayados 100 hojas', 'salida', 12, 'Entrega demo a 1ro A')
+) AS datos(orden, nombre_item, tipo_movimiento, cantidad, observaciones)
 JOIN material m ON m.nombre_item = datos.nombre_item
 JOIN usuario u ON u.username = 'admin_demo'
 WHERE NOT EXISTS (
@@ -331,7 +331,8 @@ WHERE NOT EXISTS (
     FROM movimiento_inventario mi
     WHERE mi.id_material = m.id_material
       AND mi.observaciones = datos.observaciones
-);
+)
+ORDER BY datos.orden;
 
 INSERT INTO dimension_evaluacion (nombre_dimension, puntaje_maximo, id_gestion)
 SELECT datos.nombre_dimension, datos.puntaje_maximo, ga.id_gestion
