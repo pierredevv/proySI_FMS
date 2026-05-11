@@ -12,13 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Plus, MoreHorizontal, Search, Pencil, Link2Off, Link2 } from "lucide-react"
+import { AlertCircle, Plus, MoreHorizontal, Search, Pencil, Link2 } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { tutoresApi, estudiantesApi, type Tutor, type Estudiante } from "@/lib/ciclo2Api"
 
 const PARENTESCOS = ["Madre", "Padre", "Abuelo/a", "Tío/a", "Apoderado", "Otro"]
 const GENEROS = ["Masculino", "Femenino"]
 const emptyTutor = { nombre: "", apellido: "", ci: "", genero: "", telefono: "", correo_electronico: "", direccion: "" }
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PHONE_REGEX = /^\d+$/
 
 export default function TutoresPage() {
   const [tutores, setTutores] = useState<Tutor[]>([])
@@ -28,6 +30,7 @@ export default function TutoresPage() {
   const [showVincDialog, setShowVincDialog] = useState(false)
   const [editTutor, setEditTutor] = useState<Tutor | null>(null)
   const [form, setForm] = useState({ ...emptyTutor })
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof typeof emptyTutor, string>>>({})
   const [vincForm, setVincForm] = useState({ id_estudiante: 0, id_tutor: 0, parentesco: "", autorizado_recoger: true, contacto_emergencia: false })
   const [studentSearch, setStudentSearch] = useState("")
   const [foundStudents, setFoundStudents] = useState<Estudiante[]>([])
@@ -50,22 +53,77 @@ export default function TutoresPage() {
     setFoundStudents(r)
   }
 
-  const openNewTutor = () => { setEditTutor(null); setForm({ ...emptyTutor }); setShowTutorDialog(true) }
+  const openNewTutor = () => { setEditTutor(null); setForm({ ...emptyTutor }); setFormErrors({}); setShowTutorDialog(true) }
   const openEditTutor = (t: Tutor) => {
     setEditTutor(t)
     setForm({ nombre: t.nombre, apellido: t.apellido, ci: t.ci, genero: t.genero, telefono: t.telefono ?? "", correo_electronico: t.correo_electronico ?? "", direccion: t.direccion ?? "" })
+    setFormErrors({})
     setShowTutorDialog(true)
   }
 
+  const updateTutorField = (field: keyof typeof emptyTutor, value: string) => {
+    setForm((current) => ({ ...current, [field]: value }))
+    setFormErrors((current) => {
+      if (!current[field]) return current
+      const next = { ...current }
+      delete next[field]
+      return next
+    })
+  }
+
+  const validateTutorForm = () => {
+    const errors: Partial<Record<keyof typeof emptyTutor, string>> = {}
+    const correo = form.correo_electronico.trim()
+
+    if (!form.nombre.trim()) errors.nombre = "Nombre es obligatorio"
+    if (!form.apellido.trim()) errors.apellido = "Apellido es obligatorio"
+    if (!form.ci.trim()) errors.ci = "CI es obligatorio"
+    if (!form.genero) errors.genero = "Género es obligatorio"
+    if (form.telefono.trim() && !PHONE_REGEX.test(form.telefono.trim())) {
+      errors.telefono = "Teléfono debe contener solo números"
+    }
+    if (correo && !EMAIL_REGEX.test(correo)) {
+      errors.correo_electronico = "Ingrese un correo válido. Ejemplo: tutor@correo.com"
+    }
+
+    setFormErrors(errors)
+
+    const firstError = errors.nombre || errors.apellido || errors.ci || errors.genero || errors.telefono || errors.correo_electronico
+    if (firstError) {
+      toast.error(firstError)
+      return false
+    }
+
+    return true
+  }
+
+  const fieldClass = (field: keyof typeof emptyTutor) =>
+    formErrors[field]
+      ? "border-destructive focus-visible:ring-destructive/30"
+      : undefined
+
+  const FieldError = ({ field }: { field: keyof typeof emptyTutor }) =>
+    formErrors[field] ? (
+      <p className="flex items-center gap-1 text-xs text-destructive">
+        <AlertCircle className="h-3.5 w-3.5" />
+        {formErrors[field]}
+      </p>
+    ) : null
+
   const handleSaveTutor = async () => {
-    if (!form.nombre || !form.apellido || !form.ci || !form.genero) return toast.error("Nombre, apellido, CI y género son obligatorios")
+    if (!validateTutorForm()) return
     setSaving(true)
     try {
+      const payload = {
+        ...form,
+        telefono: form.telefono.trim(),
+        correo_electronico: form.correo_electronico.trim().toLowerCase(),
+      }
       if (editTutor) {
-        await tutoresApi.update(editTutor.id_tutor, form)
+        await tutoresApi.update(editTutor.id_tutor, payload)
         toast.success("Tutor actualizado")
       } else {
-        await tutoresApi.create(form)
+        await tutoresApi.create(payload)
         toast.success("Tutor registrado")
       }
       setShowTutorDialog(false); search()
@@ -152,29 +210,58 @@ export default function TutoresPage() {
       </Card>
 
       {/* Dialog tutor */}
-      <Dialog open={showTutorDialog} onOpenChange={setShowTutorDialog}>
+      <Dialog open={showTutorDialog} onOpenChange={(open) => {
+        setShowTutorDialog(open)
+        if (!open) setFormErrors({})
+      }}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editTutor ? "Editar Tutor" : "Nuevo Tutor"}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1"><Label>Nombre *</Label><Input value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} /></div>
-              <div className="space-y-1"><Label>Apellido *</Label><Input value={form.apellido} onChange={e => setForm(f => ({ ...f, apellido: e.target.value }))} /></div>
+              <div className="space-y-1"><Label>Nombre *</Label><Input value={form.nombre} onChange={e => updateTutorField("nombre", e.target.value)} className={fieldClass("nombre")} /><FieldError field="nombre" /></div>
+              <div className="space-y-1"><Label>Apellido *</Label><Input value={form.apellido} onChange={e => updateTutorField("apellido", e.target.value)} className={fieldClass("apellido")} /><FieldError field="apellido" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1"><Label>CI *</Label><Input value={form.ci} onChange={e => setForm(f => ({ ...f, ci: e.target.value }))} /></div>
+              <div className="space-y-1"><Label>CI *</Label><Input value={form.ci} onChange={e => updateTutorField("ci", e.target.value)} className={fieldClass("ci")} /><FieldError field="ci" /></div>
               <div className="space-y-1">
                 <Label>Género *</Label>
-                <Select value={form.genero} onValueChange={v => setForm(f => ({ ...f, genero: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Género" /></SelectTrigger>
+                <Select value={form.genero} onValueChange={v => updateTutorField("genero", v)}>
+                  <SelectTrigger className={fieldClass("genero")}><SelectValue placeholder="Género" /></SelectTrigger>
                   <SelectContent>{GENEROS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
                 </Select>
+                <FieldError field="genero" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1"><Label>Teléfono</Label><Input value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} /></div>
-              <div className="space-y-1"><Label>Correo</Label><Input type="email" value={form.correo_electronico} onChange={e => setForm(f => ({ ...f, correo_electronico: e.target.value }))} /></div>
+              <div className="space-y-1">
+                <Label>Teléfono</Label>
+                <Input
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="Ej. 70000000"
+                  value={form.telefono}
+                  onChange={e => updateTutorField("telefono", e.target.value)}
+                  className={fieldClass("telefono")}
+                  aria-invalid={Boolean(formErrors.telefono)}
+                />
+                <FieldError field="telefono" />
+              </div>
+              <div className="space-y-1">
+                <Label>Correo</Label>
+                <Input
+                  type="email"
+                  inputMode="email"
+                  placeholder="tutor@correo.com"
+                  value={form.correo_electronico}
+                  onChange={e => updateTutorField("correo_electronico", e.target.value)}
+                  className={fieldClass("correo_electronico")}
+                  aria-invalid={Boolean(formErrors.correo_electronico)}
+                />
+                <FieldError field="correo_electronico" />
+              </div>
             </div>
-            <div className="space-y-1"><Label>Dirección</Label><Input value={form.direccion} onChange={e => setForm(f => ({ ...f, direccion: e.target.value }))} /></div>
+            <div className="space-y-1"><Label>Dirección</Label><Input value={form.direccion} onChange={e => updateTutorField("direccion", e.target.value)} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowTutorDialog(false)}>Cancelar</Button>

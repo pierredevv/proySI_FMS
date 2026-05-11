@@ -36,6 +36,7 @@ export const viewport: Viewport = {
 };
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = GeistSans;
 
@@ -58,6 +59,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <Toaster closeButton richColors />
           <Analytics />
         </ThemeProvider>
       </body>

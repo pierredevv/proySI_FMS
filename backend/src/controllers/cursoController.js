@@ -395,7 +395,7 @@ const duplicarCurso = async (req, res) => {
 
     res.status(201).json({
       message:
-        "Curso duplicado exitosamente. Complete el paralelo y asigne un profesor titular.",
+        "Curso duplicado correctamente. Complete el paralelo y asigne un profesor titular.",
       nuevo_curso_id: nuevoCursoId,
       datos_precargados: {
         id_grado: original.id_grado,

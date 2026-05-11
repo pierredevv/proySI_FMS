@@ -20,6 +20,7 @@ import {
   School, Plus, AlertCircle, Edit, MoreHorizontal, DoorOpen, Layers, BookOpen, DollarSign,
 } from "lucide-react"
 import { API_URL } from "@/lib/api"
+import { toast } from "sonner"
 
 const API = `${API_URL}/api/estructura`
 
@@ -42,8 +43,12 @@ function NivelesTab() {
     setIsLoading(true)
     try {
       const res = await fetch(`${API}/niveles`, { headers: getHeaders() })
-      if (res.ok) setNiveles(await res.json())
-    } catch (e) { console.error(e) }
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.message || "Error al cargar niveles")
+      setNiveles(data)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al cargar niveles")
+    }
     finally { setIsLoading(false) }
   }
   useEffect(() => { fetchNiveles() }, [])
@@ -225,9 +230,15 @@ function GradosTab() {
         fetch(`${API}/grados`, { headers: h }),
         fetch(`${API}/niveles`, { headers: h })
       ])
-      if (resG.ok) setGrados(await resG.json())
-      if (resN.ok) setNiveles(await resN.json())
-    } catch (e) { console.error(e) }
+      const gradosData = await resG.json().catch(() => null)
+      const nivelesData = await resN.json().catch(() => null)
+      if (!resG.ok) throw new Error(gradosData?.message || "Error al cargar grados")
+      if (!resN.ok) throw new Error(nivelesData?.message || "Error al cargar niveles")
+      setGrados(gradosData)
+      setNiveles(nivelesData)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al cargar datos")
+    }
     finally { setIsLoading(false) }
   }
   useEffect(() => { fetchData() }, [])
@@ -402,8 +413,12 @@ function AulasTab() {
     setIsLoading(true)
     try {
       const res = await fetch(`${API}/aulas`, { headers: getHeaders() })
-      if (res.ok) setAulas(await res.json())
-    } catch (e) { console.error(e) }
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.message || "Error al cargar aulas")
+      setAulas(data)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al cargar aulas")
+    }
     finally { setIsLoading(false) }
   }
   useEffect(() => { fetchAulas() }, [])
