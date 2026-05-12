@@ -150,17 +150,33 @@ export function Sidebar({ isCollapsed, isMobile, isMobileOpen, onToggle, onClose
     if (name) setUserName(name)
   }, [])
 
-  const toggleItem = (title: string) => {
-    setOpenItems(prev =>
-      prev.includes(title)
-        ? prev.filter(item => item !== title)
-        : [...prev, title]
-    )
-  }
-
   const isActive = (href: string) => pathname === href
   const isParentActive = (children?: { href: string }[]) =>
     children?.some(child => pathname.startsWith(child.href))
+
+  useEffect(() => {
+    const activeItem = navItems.find((item) =>
+      item.children?.some(
+        (child) =>
+          pathname.startsWith(child.href) &&
+          (!child.roles || userRole === null || child.roles.includes(userRole)),
+      ),
+    )
+
+    if (!activeItem) return
+
+    setOpenItems((prev) =>
+      prev.includes(activeItem.title) ? prev : [...prev, activeItem.title],
+    )
+  }, [pathname, userRole])
+
+  const setItemOpen = (title: string, open: boolean) => {
+    setOpenItems(prev =>
+      open
+        ? prev.includes(title) ? prev : [...prev, title]
+        : prev.filter(item => item !== title)
+    )
+  }
 
   const filteredNavItems = navItems.filter(item => {
     if (!item.roles) return true
@@ -202,7 +218,7 @@ export function Sidebar({ isCollapsed, isMobile, isMobileOpen, onToggle, onClose
               : "w-64"
         )}
       >
-      <div className="flex h-full flex-col">
+      <div className="flex h-full min-h-0 flex-col">
         {/* Header */}
         <div className={cn(
           "flex h-16 items-center border-b border-sidebar-border px-4",
@@ -265,17 +281,17 @@ export function Sidebar({ isCollapsed, isMobile, isMobileOpen, onToggle, onClose
         </div>
 
         {/* Navigation */}
-        <ScrollArea className="flex-1 px-3 py-4">
+        <ScrollArea className="min-h-0 flex-1 px-3 py-4">
           <nav className="space-y-1">
             {filteredNavItems.map((item) => {
               const ItemIcon = item.icon
               if (item.children && item.children.length > 0) {
-                const isOpen = openItems.includes(item.title) || isParentActive(item.children)
+                const isOpen = openItems.includes(item.title)
                 return (
                   <Collapsible
                     key={item.title}
                     open={!isCollapsed && isOpen}
-                    onOpenChange={() => !isCollapsed && toggleItem(item.title)}
+                    onOpenChange={(open) => !isCollapsed && setItemOpen(item.title, open)}
                   >
                     <CollapsibleTrigger asChild>
                       <Button

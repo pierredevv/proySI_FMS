@@ -112,6 +112,8 @@ function ExpedientesContent() {
                 <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
                   <span>CI: {est.ci ?? "No registrado"}</span>
                   <span>·</span>
+                  <span>RUDE: {est.rude ?? "No registrado"}</span>
+                  <span>·</span>
                   <span>Género: {est.genero}</span>
                   {est.edad && <><span>·</span><span>{est.edad} años</span></>}
                 </div>
@@ -135,7 +137,7 @@ function ExpedientesContent() {
             {/* Datos Personales */}
             <TabsContent value="personal">
               <Card><CardContent className="p-4 grid grid-cols-2 gap-3 text-sm">
-                {[["Nombre", est.nombre], ["Apellido", est.apellido], ["CI", est.ci ?? "—"], ["Género", est.genero], ["Edad", est.edad ? `${est.edad} años` : "—"], ["Fecha nacimiento", est.fecha_nacimiento ? new Date(est.fecha_nacimiento).toLocaleDateString("es-BO") : "—"], ["Estado", est.estado], ["Observaciones", est.observaciones ?? "—"]].map(([l, v]) => (
+                {[["Nombre", est.nombre], ["Apellido", est.apellido], ["CI", est.ci ?? "—"], ["RUDE", est.rude ?? "—"], ["Género", est.genero], ["Edad", est.edad ? `${est.edad} años` : "—"], ["Fecha nacimiento", est.fecha_nacimiento ? new Date(est.fecha_nacimiento).toLocaleDateString("es-BO") : "—"], ["Estado", est.estado], ["Observaciones", est.observaciones ?? "—"]].map(([l, v]) => (
                   <div key={l}><p className="text-xs text-muted-foreground">{l}</p><p className="font-medium">{v}</p></div>
                 ))}
               </CardContent></Card>

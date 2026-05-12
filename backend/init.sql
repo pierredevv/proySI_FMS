@@ -2609,3 +2609,15 @@ ALTER TABLE ONLY public.tutor_estudiante
     ADD CONSTRAINT tutor_estudiante_id_tutor_fkey FOREIGN KEY (id_tutor) REFERENCES public.tutor(id_tutor);
 ALTER TABLE ONLY public.usuario
     ADD CONSTRAINT usuario_id_rol_fkey FOREIGN KEY (id_rol) REFERENCES public.rol(id_rol);
+
+
+ALTER TABLE public.estudiante
+ADD COLUMN rude CHARACTER VARYING(16);
+
+ALTER TABLE public.estudiante
+ADD CONSTRAINT estudiante_rude_unique UNIQUE (rude);
+
+CREATE INDEX idx_estudiante_rude ON public.estudiante(rude);
+
+COMMENT ON COLUMN public.estudiante.rude IS 'Código de registro único del estudiante (15-16 dígitos)';
+

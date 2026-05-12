@@ -5,7 +5,7 @@ const verificarToken = (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-        return res.status(401).json({ message: 'Acceso denegado, No se obtuvo (proporciono) un token' });
+        return res.status(401).json({ message: 'Acceso denegado. No se proporcionó un token.' });
     }
 
     try {
@@ -15,13 +15,13 @@ const verificarToken = (req, res, next) => {
         next();
 
     } catch (error) {
-        return res.status(403).json({ message: 'El Token es invalido o a expirado' });
+        return res.status(403).json({ message: 'El token es inválido o ha expirado.' });
     }
 };
 
 const esSuperUsuario = (req, res, next) => {
     if (!req.usuario || req.usuario.role !== 1) {
-        return res.status(403).json({ message: 'Operacion rechazada. No tiene los permisos necesarios' });
+        return res.status(403).json({ message: 'Operación rechazada. No tiene los permisos necesarios.' });
     }
     next();
 }
@@ -41,4 +41,3 @@ const esAdminDirectorOSecretaria = (req, res, next) => {
 };
 
 module.exports = { verificarToken, esSuperUsuario, esAdminODirector, esAdminDirectorOSecretaria };
-

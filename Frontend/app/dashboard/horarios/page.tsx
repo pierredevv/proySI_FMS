@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Clock, Plus, Trash2, CheckCircle2, Calendar } from "lucide-react"
-import { horariosApi, cursosApi, estructuraApi, type BloqueHorario, type CursoDetalle } from "@/lib/ciclo2Api"
+import { horariosApi, materiaAsigApi, cursosApi, estructuraApi, type BloqueHorario, type CursoDetalle } from "@/lib/ciclo2Api"
 
 const DIAS = [
   { value: "lunes", label: "Lunes" },
@@ -40,6 +40,19 @@ export default function HorariosPage() {
   const [materias, setMaterias] = useState<{ id_materia: number; nombre_materia: string }[]>([])
 
   useEffect(() => { cursosApi.getAll().then(setCursos) }, [])
+
+  const loadMaterias = useCallback(async () => {
+    if (!idCurso) { setMaterias([]); return }
+    try {
+      const data = await materiaAsigApi.getMaterias(idCurso)
+      setMaterias(data.asignadas.map(m => ({ id_materia: m.id_materia, nombre_materia: m.nombre_materia })))
+    } catch (e: unknown) {
+      console.error("Error al cargar materias:", e)
+      setMaterias([])
+    }
+  }, [idCurso])
+
+  useEffect(() => { loadMaterias() }, [loadMaterias])
 
   const loadHorario = useCallback(async () => {
     if (!idCurso) return
@@ -185,6 +198,23 @@ export default function HorariosPage() {
               <div className="space-y-1"><Label>Hora inicio</Label><Input type="time" value={form.hora_inicio} onChange={e => setForm(f => ({ ...f, hora_inicio: e.target.value }))} /></div>
               <div className="space-y-1"><Label>Hora fin</Label><Input type="time" value={form.hora_fin} onChange={e => setForm(f => ({ ...f, hora_fin: e.target.value }))} /></div>
             </div>
+            {materias.length > 0 && (
+              <div className="space-y-1">
+                <Label>Materia (opcional)</Label>
+                <Select value={String(form.id_materia || 0)} onValueChange={v => setForm(f => ({ ...f, id_materia: parseInt(v) || 0 }))}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar materia..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Sin materia</SelectItem>
+                    {materias.map(m => <SelectItem key={m.id_materia} value={String(m.id_materia)}>{m.nombre_materia}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {materias.length === 0 && (
+              <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
+                ℹ️ No hay materias asignadas a este curso. Asigna materias primero.
+              </div>
+            )}
             <div className="space-y-1"><Label>Actividad libre (opcional)</Label><Input placeholder="Recreo, Educación Física..." value={form.actividad} onChange={e => setForm(f => ({ ...f, actividad: e.target.value }))} /></div>
           </div>
           <DialogFooter>

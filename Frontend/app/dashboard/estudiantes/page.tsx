@@ -23,7 +23,36 @@ const ESTADOS = [
   { value: "retirado", label: "Retirado" },
   { value: "egresado", label: "Egresado" },
 ]
-const emptyForm: EstudiantePayload = { nombre: "", apellido: "", ci: "", fecha_nacimiento: "", genero: "", de_traslado: false, institucion_origen: "", observaciones: "" }
+const emptyForm: EstudiantePayload & { rude?: string } = { nombre: "", apellido: "", ci: "", rude: "", fecha_nacimiento: "", genero: "", de_traslado: false, institucion_origen: "", observaciones: "" }
+
+// Validar RUDE (15-16 dígitos)
+const validarRude = (rude: string) => {
+  if (!rude) return true;
+  const cleaned = rude.replace(/\D/g, '');
+  return cleaned.length >= 15 && cleaned.length <= 16;
+};
+
+// Validar edad mínima (4 años cumplidos hasta 30 de junio de 2026)
+const validarEdadMinima = (fechaNacimiento: string) => {
+  if (!fechaNacimiento) return true;
+  const fecha = new Date(fechaNacimiento);
+  const fechaLimite = new Date(2022, 5, 30);
+  return fecha <= fechaLimite;
+};
+
+// Calcular si es mayor a 18 años (al 30 de junio de 2026)
+const esEstudianteMayor = (fechaNacimiento: string) => {
+  if (!fechaNacimiento) return false;
+  const fecha = new Date(fechaNacimiento);
+  const fechaReferencia = new Date(2026, 5, 30);
+  const edad = fechaReferencia.getFullYear() - fecha.getFullYear();
+  const mes = fechaReferencia.getMonth() - fecha.getMonth();
+  
+  if (mes < 0 || (mes === 0 && fechaReferencia.getDate() < fecha.getDate())) {
+    return edad - 1 >= 18;
+  }
+  return edad >= 18;
+};
 
 export default function EstudiantesPage() {
   const router = useRouter()
@@ -59,15 +88,42 @@ export default function EstudiantesPage() {
 
   const handleSave = async () => {
     if (!form.nombre || !form.apellido || !form.genero) return toast.error("Nombre, apellido y género son obligatorios")
+    
+    // Validar CI (obligatorio)
+    if (!form.ci || form.ci.trim() === "") {
+      return toast.error("El CI es obligatorio")
+    }
+    
+    // Validar RUDE (obligatorio)
+    if (!form.rude || form.rude.trim() === "") {
+      return toast.error("El RUDE es obligatorio")
+    }
+    
+    // Validar formato RUDE
+    if (form.rude && !validarRude(form.rude)) {
+      return toast.error("El RUDE debe tener 15 a 16 dígitos válidos")
+    }
+
+    // Validar fecha de nacimiento
+    if (form.fecha_nacimiento) {
+      if (new Date(form.fecha_nacimiento) > new Date()) {
+        return toast.error("La fecha de nacimiento no puede ser una fecha futura")
+      }
+      if (!validarEdadMinima(form.fecha_nacimiento)) {
+        return toast.error("El estudiante debe tener 4 años cumplidos hasta el 30 de junio de 2026")
+      }
+    }
+
     setSaving(true)
     try {
       if (editId) {
-        const r = await estudiantesApi.update(editId, form)
+        const r = await estudiantesApi.update(editId, form as EstudiantePayload)
         toast.success(r.message)
       } else {
-        const r = await estudiantesApi.create(form)
+        const r = await estudiantesApi.create(form as EstudiantePayload)
         toast.success(r.message)
         if (r.nota_traslado) toast.info(r.nota_traslado)
+        if (r.alerta_edad) toast.warning(r.alerta_edad)
       }
       setShowDialog(false); load()
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Error") }
@@ -169,20 +225,50 @@ export default function EstudiantesPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editId ? "Editar Estudiante" : "Nuevo Estudiante"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
+            {form.fecha_nacimiento && esEstudianteMayor(form.fecha_nacimiento) && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 text-sm text-yellow-800">
+                ⚠️ <strong>Alerta:</strong> Este estudiante es mayor a 18 años. Se recomienda verificar su inscripción al CEMA o CEA.
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1"><Label>Nombre *</Label><Input value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} /></div>
               <div className="space-y-1"><Label>Apellido *</Label><Input value={form.apellido} onChange={e => setForm(f => ({ ...f, apellido: e.target.value }))} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1"><Label>CI</Label><Input value={form.ci} onChange={e => setForm(f => ({ ...f, ci: e.target.value }))} placeholder="Opcional" /></div>
-              <div className="space-y-1"><Label>Fecha de nacimiento</Label><Input type="date" value={form.fecha_nacimiento} onChange={e => setForm(f => ({ ...f, fecha_nacimiento: e.target.value }))} /></div>
+              <div className="space-y-1"><Label>CI *</Label><Input value={form.ci} onChange={e => setForm(f => ({ ...f, ci: e.target.value }))} placeholder="Obligatorio" /></div>
+              <div className="space-y-1">
+                <Label>RUDE *</Label>
+                <Input 
+                  value={form.rude || ""} 
+                  onChange={e => setForm(f => ({ ...f, rude: e.target.value }))}
+                  placeholder="15-16 dígitos"
+                  maxLength={16}
+                />
+                {form.rude && !validarRude(form.rude) && (
+                  <p className="text-xs text-red-500 mt-1">El RUDE debe tener 15 a 16 dígitos válidos</p>
+                )}
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label>Género *</Label>
-              <Select value={form.genero} onValueChange={v => setForm(f => ({ ...f, genero: v }))}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>{GENEROS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Fecha de nacimiento</Label>
+                <Input 
+                  type="date" 
+                  value={form.fecha_nacimiento} 
+                  onChange={e => setForm(f => ({ ...f, fecha_nacimiento: e.target.value }))}
+                  max={new Date().toISOString().split('T')[0]}
+                />
+                {form.fecha_nacimiento && !validarEdadMinima(form.fecha_nacimiento) && (
+                  <p className="text-xs text-red-500 mt-1">Debe tener 4 años cumplidos hasta el 30/06/2026</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label>Género *</Label>
+                <Select value={form.genero} onValueChange={v => setForm(f => ({ ...f, genero: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectContent>{GENEROS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
             </div>
             {!editId && (
               <div className="flex items-center gap-2">

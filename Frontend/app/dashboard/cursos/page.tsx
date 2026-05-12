@@ -48,6 +48,7 @@ import {
   XCircle,
   Loader2,
   Layers,
+  AlertCircle,
 } from "lucide-react";
 import {
   cursosApi,
@@ -69,6 +70,22 @@ const emptyForm = {
   id_profesor: 0,
   nombre_aula: "",
 };
+type CursoFieldKey =
+  | "id_gestion"
+  | "id_grado"
+  | "paralelo"
+  | "turno"
+  | "id_aula"
+  | "id_profesor";
+
+const cursoFieldLabels: Record<CursoFieldKey, string> = {
+  id_gestion: "Gestión",
+  id_grado: "Grado",
+  paralelo: "Paralelo",
+  turno: "Turno",
+  id_aula: "Aula",
+  id_profesor: "Profesor Titular",
+};
 
 export default function CursosPage() {
   const [cursos, setCursos] = useState<CursoDetalle[]>([]);
@@ -78,6 +95,7 @@ export default function CursosPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<CursoFieldKey, string>>>({});
   const [saving, setSaving] = useState(false);
 
   // Materias dialog
@@ -119,6 +137,7 @@ export default function CursosPage() {
   const openNew = () => {
     setEditId(null);
     setForm({ ...emptyForm });
+    setFieldErrors({});
     setShowDialog(true);
   };
 
@@ -133,20 +152,71 @@ export default function CursosPage() {
       id_profesor: c.id_profesor ?? 0,
       nombre_aula: c.nombre_aula!,
     });
+    setFieldErrors({});
     setShowDialog(true);
   };
 
-  const handleSave = async () => {
-    if (
-      !editId &&
-      (!form.id_grado ||
-        !form.paralelo ||
-        !form.turno ||
-        !form.id_aula ||
-        !form.id_profesor)
-    ) {
-      return toast.error("Complete todos los campos obligatorios");
+  const clearFieldError = (field: CursoFieldKey) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const updateFormField = <K extends keyof typeof form>(
+    field: K,
+    value: (typeof form)[K],
+  ) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    if (field in cursoFieldLabels) {
+      clearFieldError(field as CursoFieldKey);
     }
+  };
+
+  const getFieldMessage = (field: CursoFieldKey) =>
+    `${cursoFieldLabels[field]} es obligatorio.`;
+
+  const validateCursoForm = () => {
+    const requiredFields: CursoFieldKey[] = editId
+      ? ["turno", "id_aula", "id_profesor"]
+      : ["id_gestion", "id_grado", "paralelo", "turno", "id_aula", "id_profesor"];
+    const nextErrors: Partial<Record<CursoFieldKey, string>> = {};
+
+    requiredFields.forEach((field) => {
+      const value = form[field];
+      if (typeof value === "string" ? value.trim() === "" : !value) {
+        nextErrors[field] = getFieldMessage(field);
+      }
+    });
+
+    setFieldErrors(nextErrors);
+
+    const firstError = requiredFields.find((field) => nextErrors[field]);
+    if (firstError) {
+      toast.error(nextErrors[firstError]);
+      return false;
+    }
+
+    return true;
+  };
+
+  const fieldControlClass = (field: CursoFieldKey) =>
+    fieldErrors[field]
+      ? "border-destructive focus-visible:ring-destructive/30"
+      : undefined;
+
+  const FieldError = ({ field }: { field: CursoFieldKey }) =>
+    fieldErrors[field] ? (
+      <p className="flex items-center gap-1 text-xs text-destructive">
+        <AlertCircle className="h-3.5 w-3.5" />
+        {fieldErrors[field]}
+      </p>
+    ) : null;
+
+  const handleSave = async () => {
+    if (!validateCursoForm()) return;
     setSaving(true);
     try {
       if (editId) {
@@ -476,7 +546,10 @@ export default function CursosPage() {
       </Card>
 
       {/* Dialog Crear/Editar Curso */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+      <Dialog open={showDialog} onOpenChange={(open) => {
+        setShowDialog(open);
+        if (!open) setFieldErrors({});
+      }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editId ? "Editar Curso" : "Nuevo Curso"}</DialogTitle>
@@ -487,12 +560,12 @@ export default function CursosPage() {
                 <div className="space-y-1">
                   <Label>Gestión</Label>
                   <Select
-                    value={String(form.id_gestion)}
+                    value={form.id_gestion ? String(form.id_gestion) : ""}
                     onValueChange={(v) =>
-                      setForm((f) => ({ ...f, id_gestion: +v }))
+                      updateFormField("id_gestion", +v)
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={fieldControlClass("id_gestion")}>
                       <SelectValue placeholder="Seleccionar gestión" />
                     </SelectTrigger>
                     <SelectContent>
@@ -505,17 +578,18 @@ export default function CursosPage() {
                       ) : null}
                     </SelectContent>
                   </Select>
+                  <FieldError field="id_gestion" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label>Grado</Label>
                     <Select
-                      value={String(form.id_grado)}
+                      value={form.id_grado ? String(form.id_grado) : ""}
                       onValueChange={(v) =>
-                        setForm((f) => ({ ...f, id_grado: +v }))
+                        updateFormField("id_grado", +v)
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={fieldControlClass("id_grado")}>
                         <SelectValue placeholder="Grado" />
                       </SelectTrigger>
                       <SelectContent>
@@ -529,6 +603,7 @@ export default function CursosPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <FieldError field="id_grado" />
                   </div>
                   <div className="space-y-1">
                     <Label>Paralelo</Label>
@@ -536,13 +611,13 @@ export default function CursosPage() {
                       placeholder="A, B..."
                       value={form.paralelo}
                       onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          paralelo: e.target.value.toUpperCase(),
-                        }))
+                        updateFormField("paralelo", e.target.value.toUpperCase())
                       }
+                      className={fieldControlClass("paralelo")}
+                      aria-invalid={Boolean(fieldErrors.paralelo)}
                       maxLength={3}
                     />
+                    <FieldError field="paralelo" />
                   </div>
                 </div>
               </>
@@ -552,9 +627,9 @@ export default function CursosPage() {
                 <Label>Turno</Label>
                 <Select
                   value={form.turno}
-                  onValueChange={(v) => setForm((f) => ({ ...f, turno: v }))}
+                  onValueChange={(v) => updateFormField("turno", v)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={fieldControlClass("turno")}>
                     <SelectValue placeholder="Turno" />
                   </SelectTrigger>
                   <SelectContent>
@@ -565,14 +640,15 @@ export default function CursosPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError field="turno" />
               </div>
               <div className="space-y-1">
                 <Label>Aula</Label>
                 <Select
-                  value={String(form.id_aula)}
-                  onValueChange={(v) => setForm((f) => ({ ...f, id_aula: +v }))}
+                  value={form.id_aula ? String(form.id_aula) : ""}
+                  onValueChange={(v) => updateFormField("id_aula", +v)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={fieldControlClass("id_aula")}>
                     <SelectValue placeholder="Aula" />
                   </SelectTrigger>
                   <SelectContent>
@@ -584,17 +660,18 @@ export default function CursosPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError field="id_aula" />
               </div>
             </div>
             <div className="space-y-1">
               <Label>Profesor Titular</Label>
               <Select
-                value={String(form.id_profesor)}
+                value={form.id_profesor ? String(form.id_profesor) : ""}
                 onValueChange={(v) =>
-                  setForm((f) => ({ ...f, id_profesor: +v }))
+                  updateFormField("id_profesor", +v)
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className={fieldControlClass("id_profesor")}>
                   <SelectValue placeholder="Seleccionar profesor" />
                 </SelectTrigger>
                 <SelectContent>
@@ -608,6 +685,7 @@ export default function CursosPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <FieldError field="id_profesor" />
             </div>
           </div>
           <DialogFooter>
