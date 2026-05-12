@@ -10,6 +10,38 @@ const normalizarEstadoEstudiante = (estado) => {
     return normalized;
 };
 
+// Validar formato de RUDE (15-16 dígitos)
+const validarRude = (rude) => {
+    if (!rude) return true; // RUDE es opcional
+    const cleaned = String(rude).trim().replace(/\D/g, '');
+    if (cleaned.length < 15 || cleaned.length > 16) {
+        return false;
+    }
+    return true;
+};
+
+// Validar edad mínima (4 años cumplidos hasta el 30 de junio del 2026)
+const validarEdadMinima = (fechaNacimiento) => {
+    if (!fechaNacimiento) return true;
+    const fecha = new Date(fechaNacimiento);
+    const fechaLimite = new Date(2022, 5, 30); // 30 de junio de 2022
+    return fecha <= fechaLimite;
+};
+
+// Calcular si el estudiante es mayor a 18 años (al 30 de junio del 2026)
+const esEstudianteMayor = (fechaNacimiento) => {
+    if (!fechaNacimiento) return false;
+    const fecha = new Date(fechaNacimiento);
+    const fechaReferencia = new Date(2026, 5, 30); // 30 de junio de 2026
+    const edad = fechaReferencia.getFullYear() - fecha.getFullYear();
+    const mes = fechaReferencia.getMonth() - fecha.getMonth();
+    
+    if (mes < 0 || (mes === 0 && fechaReferencia.getDate() < fecha.getDate())) {
+        return edad - 1 >= 18;
+    }
+    return edad >= 18;
+};
+
 const getEstudiantes = async (req, res) => {
     const { search, id_nivel, id_grado, turno, estado, edad_min, edad_max } = req.query;
     try {
@@ -63,17 +95,47 @@ const getEstudiantes = async (req, res) => {
 };
 
 const createEstudiante = async (req, res) => {
-    const { nombre, apellido, ci, fecha_nacimiento, genero, de_traslado, institucion_origen } = req.body;
+    const { nombre, apellido, ci, rude, fecha_nacimiento, genero, de_traslado, institucion_origen } = req.body;
 
     if (!nombre || !apellido || !genero) {
         return res.status(400).json({ message: 'El nombre, apellido y género son obligatorios.' });
+    }
+
+    // Validar CI (obligatorio)
+    if (!ci || String(ci).trim() === '') {
+        return res.status(400).json({ message: 'El CI es obligatorio.' });
+    }
+
+    // Validar RUDE (obligatorio)
+    if (!rude || String(rude).trim() === '') {
+        return res.status(400).json({ message: 'El RUDE es obligatorio.' });
+    }
+
+    // Validar formato de RUDE (15-16 dígitos)
+    const rudeClean = String(rude).trim().replace(/\D/g, '');
+    if (rudeClean.length < 15 || rudeClean.length > 16) {
+        return res.status(400).json({ message: 'El RUDE debe tener 15 a 16 dígitos válidos.' });
     }
 
     if (fecha_nacimiento && new Date(fecha_nacimiento) > new Date()) {
         return res.status(400).json({ message: 'La fecha de nacimiento no puede ser una fecha futura.' });
     }
 
+    // Validar edad mínima (4 años cumplidos hasta el 30 de junio de 2026)
+    if (fecha_nacimiento && !validarEdadMinima(fecha_nacimiento)) {
+        return res.status(400).json({ message: 'El estudiante debe tener 4 años cumplidos hasta el 30 de junio de 2026.' });
+    }
+
     try {
+        // Verificar si RUDE ya existe
+        if (rude) {
+            const rudeCheck = await pool.query('SELECT nombre, apellido FROM estudiante WHERE rude = $1', [rude.trim()]);
+            if (rudeCheck.rows.length > 0) {
+                const est = rudeCheck.rows[0];
+                return res.status(409).json({ message: `Ya existe un estudiante registrado con el RUDE ${rude}: ${est.nombre} ${est.apellido}.` });
+            }
+        }
+
         if (ci) {
             const ciCheck = await pool.query('SELECT nombre, apellido FROM estudiante WHERE ci = $1', [ci]);
             if (ciCheck.rows.length > 0) {
@@ -86,34 +148,44 @@ const createEstudiante = async (req, res) => {
         const notaTraslado = de_traslado
             ? ` | ESTUDIANTE DE TRASLADO. Origen: ${institucion_origen || 'No especificado'}`
             : null;
-        const observacionesVal = ((req.body.observaciones || '') + (notaTraslado || '')).trim() || null;
+        
+        // Agregar recomendación si es mayor a 18 años
+        const notaEdad = esEstudianteMayor(fecha_nacimiento)
+            ? ` | ALERTA: Estudiante mayor a 18 años. Se recomienda inscripción a CEMA o CEA.`
+            : null;
+        
+        const observacionesVal = ((req.body.observaciones || '') + (notaTraslado || '') + (notaEdad || '')).trim() || null;
 
         let nuevoEstudiante;
         try {
-            // Intenta con columna observaciones (disponible tras migracion_ciclo2.sql)
+            // Intenta con columna RUDE y observaciones
             nuevoEstudiante = await pool.query(
-                `INSERT INTO estudiante (nombre, apellido, ci, fecha_nacimiento, genero, estado, observaciones)
-                 VALUES ($1, $2, $3, $4, $5, 'activo', $6) RETURNING *`,
-                [nombre, apellido, ci || null, fecha_nacimiento || null, genero, observacionesVal]
+                `INSERT INTO estudiante (nombre, apellido, ci, rude, fecha_nacimiento, genero, estado, observaciones)
+                 VALUES ($1, $2, $3, $4, $5, $6, 'activo', $7) RETURNING *`,
+                [nombre, apellido, ci || null, rude || null, fecha_nacimiento || null, genero, observacionesVal]
             );
         } catch (colErr) {
-            if (colErr.message.includes('observaciones')) {
-                // Columna aun no existe: insertar sin ella
+            if (colErr.message.includes('rude') || colErr.message.includes('observaciones')) {
+                // Columna aún no existe: intentar sin RUDE
                 nuevoEstudiante = await pool.query(
-                    `INSERT INTO estudiante (nombre, apellido, ci, fecha_nacimiento, genero, estado)
-                     VALUES ($1, $2, $3, $4, $5, 'activo') RETURNING *`,
-                    [nombre, apellido, ci || null, fecha_nacimiento || null, genero]
+                    `INSERT INTO estudiante (nombre, apellido, ci, fecha_nacimiento, genero, estado, observaciones)
+                     VALUES ($1, $2, $3, $4, $5, 'activo', $6) RETURNING *`,
+                    [nombre, apellido, ci || null, fecha_nacimiento || null, genero, observacionesVal]
                 );
             } else {
                 throw colErr;
             }
         }
 
-        res.status(201).json({
+        const response = {
             message: 'Estudiante registrado correctamente',
-            estudiante: nuevoEstudiante.rows[0],
-            ...(notaTraslado && { nota_traslado: notaTraslado.trim() })
-        });
+            estudiante: nuevoEstudiante.rows[0]
+        };
+
+        if (notaTraslado) response.nota_traslado = notaTraslado.trim();
+        if (notaEdad) response.alerta_edad = notaEdad.trim();
+
+        res.status(201).json(response);
     } catch (error) {
         res.status(500).json({ message: 'Error al crear estudiante', error: error.message });
     }
