@@ -94,6 +94,3 @@ Este proyecto está bajo la licencia **MIT**. Consulta el archivo `LICENSE` para
 
 ---
 
-## 📬 Contacto
-
-¿Dudas o sugerencias? Abre un issue o contáctanos directamente a través del repositorio.
