@@ -19,6 +19,8 @@ const bitacoraRoutes = require("./routes/bitacoraRoutes");
 const seguridadRoutes = require("./routes/seguridadRoutes");
 const asistenciaRoutes = require("./routes/asistenciaRoutes");
 const pagoRoutes = require("./routes/pagoRoutes");
+const dimensionRoutes = require("./routes/dimensionRoutes");
+const justificacionRoutes = require("./routes/justificacionRoutes");
 const inventarioRoutes = require("./routes/inventarioRoutes");
 
 const app = express();
@@ -62,6 +64,8 @@ app.use("/api/bitacora", bitacoraRoutes);
 app.use("/api/seguridad", seguridadRoutes);
 app.use("/api/asistencias", asistenciaRoutes);
 app.use("/api/pagos", pagoRoutes);
+app.use("/api/dimensiones", dimensionRoutes);
+app.use("/api/justificaciones", justificacionRoutes);
 app.use("/api/inventario", inventarioRoutes);
 
 const PORT = Number(process.env.PORT) || 5000;
