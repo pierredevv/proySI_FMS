@@ -150,6 +150,84 @@ export const horariosApi = {
     ),
 };
 
+export const pagosApi = {
+  getConceptos: () => get<Concepto[]>("/api/pagos/conceptos"),
+  getDeudas: (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+    return get<DeudaPago[]>(`/api/pagos/deudas${qs}`);
+  },
+  createDeuda: (data: {
+    id_estudiante: number;
+    id_gestion: number;
+    id_concepto: number;
+    monto: number;
+    mes: string;
+  }) => post<{ message: string; deuda: DeudaPago }>("/api/pagos/deudas", data),
+  generateBulkDeudas: (data: BulkDeudasRequest) =>
+    post<BulkDeudasResponse>("/api/pagos/deudas/masivas", data),
+  registrarPago: (data: {
+    id_deuda: number;
+    monto_pagado: number;
+    metodo_pago: string;
+    estado?: string;
+    comprobante_url?: string;
+    observaciones?: string;
+  }) => post<{ message: string; pago: Pago }>("/api/pagos", data),
+  validarPago: (id: number, estado: string) =>
+    put<{ message: string; pago: Pago }>(`/api/pagos/${id}/estado`, { estado }),
+};
+
+export const dimensionesApi = {
+  get: () =>
+    get<{
+      gestion: { id_gestion: number; anio: number };
+      dimensiones: Dimension[];
+    }>("/api/dimensiones"),
+  save: (data: { dimensiones: DimensionSave[] }) =>
+    post<{ message: string; dimensiones: Dimension[] }>(
+      "/api/dimensiones",
+      data,
+    ),
+  update: (id: number, data: { puntaje_maximo: number }) =>
+    put<{ message: string; dimension: Dimension }>(
+      `/api/dimensiones/${id}`,
+      data,
+    ),
+};
+
+export const justificacionesApi = {
+  buscarInasistencia: (id_estudiante: number, fecha: string) =>
+    get<JustificacionDetalle>(
+      `/api/justificaciones/inasistencia?id_estudiante=${id_estudiante}&fecha=${encodeURIComponent(
+        fecha,
+      )}`,
+    ),
+  registrar: (data: {
+    id_asistencia: number;
+    motivo: string;
+    documento_referencia?: string;
+    observaciones?: string;
+  }) =>
+    post<{ message: string; justificacion: Justificacion }>(
+      "/api/justificaciones",
+      data,
+    ),
+  listarPendientes: () =>
+    get<Justificacion[]>("/api/justificaciones/pendientes"),
+  resolver: (
+    id: number,
+    data: { estado: "aprobada" | "rechazada"; observaciones?: string },
+  ) =>
+    put<{ message: string; justificacion: Justificacion }>(
+      `/api/justificaciones/${id}/resolver`,
+      data,
+    ),
+  listar: (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+    return get<Justificacion[]>(`/api/justificaciones${qs}`);
+  },
+};
+
 // ── CU11 – Estudiantes ────────────────────────────────────────────────────────
 // Montado en /api/estudiantes
 
@@ -390,6 +468,89 @@ export interface BloqueHorarioPayload {
   hora_inicio: string;
   hora_fin: string;
   actividad?: string;
+}
+
+export interface DeudaPago {
+  id_deuda: number;
+  id_estudiante: number;
+  estudiante: string;
+  estudiante_ci?: string;
+  id_gestion: number;
+  anio: number;
+  id_concepto: number;
+  nombre_concepto: string;
+  monto: string;
+  mes: string;
+  estado_deuda: string;
+  id_pago?: number;
+  monto_pagado?: string;
+  metodo_pago?: string;
+  estado_pago?: string;
+  fecha_pago?: string;
+}
+
+export interface Concepto {
+  id_concepto: number;
+  nombre_concepto: string;
+}
+
+export interface BulkDeudasRequest {
+  id_gestion: number;
+  id_concepto: number;
+  mes: string;
+  filtros?: {
+    id_nivel?: number;
+    id_grado?: number;
+    id_curso?: number;
+    ids_estudiantes?: number[];
+  };
+}
+
+export interface BulkDeudasResponse {
+  message: string;
+  resumen: {
+    nuevas_deudas: number;
+    ya_existentes: number;
+    sin_arancel_configurado: number;
+    total_procesados: number;
+  };
+}
+
+export interface Dimension {
+  id_dimension_eval: number;
+  nombre_dimension: string;
+  puntaje_maximo: number;
+  id_gestion: number;
+}
+
+export interface DimensionSave {
+  nombre_dimension: string;
+  puntaje_maximo: number;
+}
+
+export interface Justificacion {
+  id_justificacion: number;
+  id_asistencia: number;
+  id_estudiante: number;
+  id_curso: number;
+  fecha: string;
+  motivo: string;
+  documento_referencia?: string;
+  observaciones?: string;
+  estado: string;
+  fecha_solicitud?: string;
+  id_usuario_solicitante?: number;
+  id_usuario_revisor?: number;
+  fecha_resolucion?: string;
+}
+
+export interface JustificacionDetalle {
+  id_asistencia: number;
+  id_estudiante: number;
+  id_curso: number;
+  fecha: string;
+  estado: string;
+  observaciones?: string;
 }
 
 export interface Estudiante {
