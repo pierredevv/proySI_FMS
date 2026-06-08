@@ -112,16 +112,33 @@ const login = async (req, res) => {
             ORDER BY m.nombre_modulo, f.metodo
         `, [user.id_rol]);
 
+        const rolNombreResult = await pool.query(
+            'SELECT nombre_rol FROM rol WHERE id_rol = $1',
+            [user.id_rol]
+        );
+        const nombre_rol = rolNombreResult.rows[0]?.nombre_rol || '';
+
+        let id_estudiante = null;
+        if (nombre_rol === 'Estudiante') {
+            const estResult = await pool.query(
+                'SELECT id_estudiante FROM estudiante WHERE id_usuario = $1',
+                [user.id_usuario]
+            );
+            id_estudiante = estResult.rows[0]?.id_estudiante || null;
+        }
+
         const token = jwt.sign(
-            { id: user.id_usuario, role: user.id_rol },
+            { id: user.id_usuario, role: user.id_rol, nombre_rol, id_estudiante },
             process.env.JWT_SECRET,
             { expiresIn: '2h' }
-        )
+        );
 
         res.json({
             message: 'Inicio de sesión exitoso.',
             token,
             role: user.id_rol,
+            nombre_rol,
+            id_estudiante,
             funcionalidades: funcionalidadesResult.rows
         });
 

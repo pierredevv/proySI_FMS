@@ -56,14 +56,22 @@ export default function LoginPage() {
       }
 
       localStorage.setItem("token", data.token);
-      localStorage.setItem("userRole", String(data.role)); // El id de rol real devuelto por la BD
+      localStorage.setItem("userRole", String(data.role));
+      localStorage.setItem("userNombreRol", data.nombre_rol || "");
       localStorage.setItem("userName", formData.username);
       localStorage.setItem(
         "userFuncionalidades",
         JSON.stringify(data.funcionalidades || []),
       );
+      if (data.id_estudiante) {
+        localStorage.setItem("idEstudiante", String(data.id_estudiante));
+      }
 
-      router.push("/dashboard");
+      if (data.nombre_rol === "Estudiante") {
+        router.push("/estudiante/mis-pagos");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {

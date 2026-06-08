@@ -468,6 +468,8 @@ CREATE TABLE public.estudiante (
     estado character varying(20) DEFAULT 'activo'::character varying NOT NULL,
     fecha_registro timestamp without time zone DEFAULT now() NOT NULL,
     observaciones text,
+    id_usuario integer,
+    rude character varying(16),
     CONSTRAINT estudiante_estado_check CHECK (((estado)::text = ANY ((ARRAY['activo'::character varying, 'inactivo'::character varying, 'retirado'::character varying, 'egresado'::character varying])::text[]))),
     CONSTRAINT estudiante_genero_check CHECK (((genero)::text = ANY (ARRAY[('Masculino'::character varying)::text, ('Femenino'::character varying)::text])))
 );
@@ -693,11 +695,12 @@ CREATE TABLE public.pago (
     metodo_pago character varying(30) NOT NULL,
     comprobante_url character varying(255),
     estado character varying(30) DEFAULT 'pendiente_validacion'::character varying NOT NULL,
-    id_usuario_registro integer NOT NULL,
+    id_usuario_registro integer,
     fecha_pago timestamp without time zone DEFAULT now() NOT NULL,
     observaciones text,
-    CONSTRAINT pago_estado_check CHECK (((estado)::text = ANY (ARRAY[('pendiente_validacion'::character varying)::text, ('validado'::character varying)::text, ('rechazado'::character varying)::text]))),
-    CONSTRAINT pago_metodo_pago_check CHECK (((metodo_pago)::text = ANY (ARRAY[('efectivo'::character varying)::text, ('QR'::character varying)::text, ('transferencia'::character varying)::text]))),
+    id_stripe_payment character varying(255),
+    CONSTRAINT pago_estado_check CHECK (((estado)::text = ANY (ARRAY['pendiente_validacion'::text, 'validado'::text, 'rechazado'::text, 'completado'::text]))),
+    CONSTRAINT pago_metodo_pago_check CHECK (((metodo_pago)::text = ANY (ARRAY['efectivo'::text, 'QR'::text, 'transferencia'::text, 'stripe'::text]))),
     CONSTRAINT pago_monto_pagado_check CHECK ((monto_pagado > (0)::numeric))
 );
 CREATE SEQUENCE public.pago_id_pago_seq
@@ -2610,14 +2613,71 @@ ALTER TABLE ONLY public.tutor_estudiante
 ALTER TABLE ONLY public.usuario
     ADD CONSTRAINT usuario_id_rol_fkey FOREIGN KEY (id_rol) REFERENCES public.rol(id_rol);
 
+-- Columnas y FK de estudiante (idempotentes)
+ALTER TABLE public.estudiante ADD COLUMN IF NOT EXISTS id_usuario INTEGER;
+ALTER TABLE public.estudiante ADD COLUMN IF NOT EXISTS rude CHARACTER VARYING(16);
 
-ALTER TABLE public.estudiante
-ADD COLUMN rude CHARACTER VARYING(16);
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE table_name = 'estudiante' AND constraint_name = 'estudiante_id_usuario_key'
+    ) THEN
+        ALTER TABLE public.estudiante ADD CONSTRAINT estudiante_id_usuario_key UNIQUE (id_usuario);
+    END IF;
+END $$;
 
-ALTER TABLE public.estudiante
-ADD CONSTRAINT estudiante_rude_unique UNIQUE (rude);
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE table_name = 'estudiante' AND constraint_name = 'fk_estudiante_usuario'
+    ) THEN
+        ALTER TABLE public.estudiante ADD CONSTRAINT fk_estudiante_usuario
+            FOREIGN KEY (id_usuario) REFERENCES public.usuario(id_usuario) ON DELETE SET NULL;
+    END IF;
+END $$;
 
-CREATE INDEX idx_estudiante_rude ON public.estudiante(rude);
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE table_name = 'estudiante' AND constraint_name = 'estudiante_rude_unique'
+    ) THEN
+        ALTER TABLE public.estudiante ADD CONSTRAINT estudiante_rude_unique UNIQUE (rude);
+    END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_estudiante_rude ON public.estudiante(rude);
 
 COMMENT ON COLUMN public.estudiante.rude IS 'Código de registro único del estudiante (15-16 dígitos)';
+
+-- Rol y permisos de estudiante
+INSERT INTO public.rol (nombre_rol, descripcion, estado, fecha_creacion)
+VALUES ('Estudiante', 'Rol para estudiantes: acceso a sus datos, calificaciones, pagos y perfil', true, NOW())
+ON CONFLICT (nombre_rol) DO NOTHING;
+
+INSERT INTO public.permiso (nombre_permiso, descripcion) VALUES
+('ver_mis_datos', 'Ver sus propios datos personales'),
+('ver_mis_calificaciones', 'Ver sus propias calificaciones'),
+('ver_mis_pagos', 'Ver sus propios pagos y deudas'),
+('realizar_pago', 'Realizar pagos en línea')
+ON CONFLICT (nombre_permiso) DO NOTHING;
+
+WITH rol_estudiante AS (
+    SELECT id_rol FROM public.rol WHERE nombre_rol = 'Estudiante'
+)
+INSERT INTO public.rol_permiso (id_rol, id_permiso)
+SELECT r.id_rol, p.id_permiso
+FROM rol_estudiante r
+CROSS JOIN public.permiso p
+WHERE p.nombre_permiso IN ('ver_mis_datos', 'ver_mis_calificaciones', 'ver_mis_pagos', 'realizar_pago')
+ON CONFLICT (id_rol, id_permiso) DO NOTHING;
+
+-- Columnas y constraints de pago para Stripe (idempotentes)
+ALTER TABLE pago DROP CONSTRAINT IF EXISTS pago_metodo_pago_check;
+ALTER TABLE pago ADD CONSTRAINT pago_metodo_pago_check CHECK (metodo_pago IN ('efectivo', 'QR', 'transferencia', 'stripe'));
+
+ALTER TABLE pago DROP CONSTRAINT IF EXISTS pago_estado_check;
+ALTER TABLE pago ADD CONSTRAINT pago_estado_check CHECK (estado IN ('pendiente_validacion', 'validado', 'rechazado', 'completado'));
+
+ALTER TABLE pago ADD COLUMN IF NOT EXISTS id_stripe_payment VARCHAR(255);
+ALTER TABLE pago ALTER COLUMN id_usuario_registro DROP NOT NULL;
 

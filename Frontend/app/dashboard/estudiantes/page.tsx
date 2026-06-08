@@ -44,6 +44,7 @@ import {
   UserCheck,
   Download,
   Eye,
+  KeyRound,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -51,6 +52,7 @@ import {
   type Estudiante,
   type EstudiantePayload,
 } from "@/lib/ciclo2Api";
+import { adminEstudianteApi } from "@/lib/apiEstudiante";
 import { useRouter } from "next/navigation";
 
 const GENEROS = ["Masculino", "Femenino"];
@@ -111,6 +113,12 @@ export default function EstudiantesPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<EstudiantePayload>({ ...emptyForm });
   const [saving, setSaving] = useState(false);
+
+  // Crear cuenta de estudiante
+  const [showCuentaDialog, setShowCuentaDialog] = useState(false);
+  const [cuentaEstudiante, setCuentaEstudiante] = useState<Estudiante | null>(null);
+  const [cuentaForm, setCuentaForm] = useState({ username: "", password: "", email: "" });
+  const [savingCuenta, setSavingCuenta] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -220,6 +228,29 @@ export default function EstudiantesPage() {
       a.click();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Error al exportar");
+    }
+  };
+
+  const openCrearCuenta = (e: Estudiante) => {
+    setCuentaEstudiante(e);
+    setCuentaForm({ username: "", password: "", email: "" });
+    setShowCuentaDialog(true);
+  };
+
+  const handleCrearCuenta = async () => {
+    if (!cuentaEstudiante) return;
+    if (!cuentaForm.username || !cuentaForm.password || !cuentaForm.email) {
+      return toast.error("Usuario, contraseña y email son obligatorios.");
+    }
+    setSavingCuenta(true);
+    try {
+      const r = await adminEstudianteApi.crearCuenta(cuentaEstudiante.id_estudiante, cuentaForm);
+      toast.success(r.message);
+      setShowCuentaDialog(false);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Error al crear cuenta");
+    } finally {
+      setSavingCuenta(false);
     }
   };
 
@@ -362,6 +393,10 @@ export default function EstudiantesPage() {
                               <DropdownMenuItem onClick={() => openEdit(e)}>
                                 <Pencil className="h-4 w-4 mr-2" />
                                 Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openCrearCuenta(e)}>
+                                <KeyRound className="h-4 w-4 mr-2" />
+                                Crear cuenta de acceso
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -542,6 +577,58 @@ export default function EstudiantesPage() {
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? "Guardando..." : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Crear cuenta de acceso para estudiante ── */}
+      <Dialog open={showCuentaDialog} onOpenChange={setShowCuentaDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              Crear cuenta de acceso
+            </DialogTitle>
+          </DialogHeader>
+          {cuentaEstudiante && (
+            <p className="text-sm text-muted-foreground -mt-2">
+              {cuentaEstudiante.nombre} {cuentaEstudiante.apellido}
+            </p>
+          )}
+          <div className="space-y-3 py-1">
+            <div className="space-y-1">
+              <Label>Usuario</Label>
+              <Input
+                placeholder="nombre.apellido"
+                value={cuentaForm.username}
+                onChange={(e) => setCuentaForm((f) => ({ ...f, username: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                placeholder="correo@ejemplo.com"
+                value={cuentaForm.email}
+                onChange={(e) => setCuentaForm((f) => ({ ...f, email: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Contraseña</Label>
+              <Input
+                type="password"
+                placeholder="Mínimo 10 caracteres"
+                value={cuentaForm.password}
+                onChange={(e) => setCuentaForm((f) => ({ ...f, password: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCuentaDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCrearCuenta} disabled={savingCuenta}>
+              {savingCuenta ? "Creando..." : "Crear cuenta"}
             </Button>
           </DialogFooter>
         </DialogContent>

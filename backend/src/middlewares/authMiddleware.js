@@ -40,4 +40,14 @@ const esAdminDirectorOSecretaria = (req, res, next) => {
     next();
 };
 
-module.exports = { verificarToken, esSuperUsuario, esAdminODirector, esAdminDirectorOSecretaria };
+const esEstudiante = (req, res, next) => {
+    if (!req.usuario || req.usuario.nombre_rol !== 'Estudiante') {
+        return res.status(403).json({ message: 'Acceso exclusivo para el portal estudiantil.' });
+    }
+    if (!req.usuario.id_estudiante) {
+        return res.status(403).json({ message: 'Cuenta no vinculada a un estudiante. Contacta al administrador.' });
+    }
+    next();
+};
+
+module.exports = { verificarToken, esSuperUsuario, esAdminODirector, esAdminDirectorOSecretaria, esEstudiante };
