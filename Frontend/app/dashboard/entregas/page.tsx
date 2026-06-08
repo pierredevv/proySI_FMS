@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -17,16 +17,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -35,8 +35,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { ScrollArea } from "@/components/ui/scroll-area"
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Search,
   UserCheck,
@@ -47,18 +47,18 @@ import {
   Users,
   Baby,
   History,
-} from "lucide-react"
+} from "lucide-react";
 
 interface Student {
-  id: number
-  name: string
-  grade: string
-  level: string
-  status: "pending" | "delivered" | "alert"
-  scheduledTime: string
-  deliveredTime?: string
-  tutor?: string
-  tutorRelation?: string
+  id: number;
+  name: string;
+  grade: string;
+  level: string;
+  status: "pending" | "delivered" | "alert";
+  scheduledTime: string;
+  deliveredTime?: string;
+  tutor?: string;
+  tutorRelation?: string;
 }
 
 const students: Student[] = [
@@ -108,7 +108,7 @@ const students: Student[] = [
     tutor: "Luis Martínez",
     tutorRelation: "Padre",
   },
-]
+];
 
 const statusConfig = {
   pending: {
@@ -126,25 +126,26 @@ const statusConfig = {
     icon: AlertTriangle,
     color: "bg-destructive/10 text-destructive",
   },
-}
+};
 
 export default function EntregasPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [levelFilter, setLevelFilter] = useState("all")
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [levelFilter, setLevelFilter] = useState("all");
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   const filteredStudents = students.filter((student) => {
     const matchesSearch = student.name
       .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-    const matchesLevel =
-      levelFilter === "all" || student.level === levelFilter
-    return matchesSearch && matchesLevel
-  })
+      .includes(searchTerm.toLowerCase());
+    const matchesLevel = levelFilter === "all" || student.level === levelFilter;
+    return matchesSearch && matchesLevel;
+  });
 
-  const pendingCount = students.filter((s) => s.status === "pending").length
-  const deliveredCount = students.filter((s) => s.status === "delivered").length
-  const alertCount = students.filter((s) => s.status === "alert").length
+  const pendingCount = students.filter((s) => s.status === "pending").length;
+  const deliveredCount = students.filter(
+    (s) => s.status === "delivered",
+  ).length;
+  const alertCount = students.filter((s) => s.status === "alert").length;
 
   return (
     <div className="space-y-6">
@@ -175,7 +176,8 @@ export default function EntregasPage() {
                   Atención: {alertCount} estudiante(s) sin tutor asignado
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Verifique la información de tutores autorizados antes de proceder.
+                  Verifique la información de tutores autorizados antes de
+                  proceder.
                 </p>
               </div>
             </div>
@@ -261,7 +263,7 @@ export default function EntregasPage() {
                     />
                   </div>
                   <Select value={levelFilter} onValueChange={setLevelFilter}>
-                    <SelectTrigger className="w-32">
+                    <SelectTrigger className="w-full sm:w-32">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -274,7 +276,33 @@ export default function EntregasPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
+              <div className="space-y-3 md:hidden">
+                {filteredStudents.map((student) => {
+                  const config = statusConfig[student.status];
+                  return (
+                    <div
+                      key={student.id}
+                      className="rounded-lg border p-4 space-y-2"
+                    >
+                      <p className="font-medium">{student.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {student.grade}
+                      </p>
+                      <p className="text-sm">
+                        <span className="font-medium">Hora:</span>{" "}
+                        {student.deliveredTime || student.scheduledTime}
+                      </p>
+                      <Badge
+                        variant="secondary"
+                        className={`gap-1 ${config.color}`}
+                      >
+                        {config.label}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="hidden md:block rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -287,8 +315,8 @@ export default function EntregasPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredStudents.map((student) => {
-                      const config = statusConfig[student.status]
-                      const Icon = config.icon
+                      const config = statusConfig[student.status];
+                      const Icon = config.icon;
                       return (
                         <TableRow key={student.id}>
                           <TableCell>
@@ -302,7 +330,9 @@ export default function EntregasPage() {
                                     .join("")}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="font-medium">{student.name}</span>
+                              <span className="font-medium">
+                                {student.name}
+                              </span>
                             </div>
                           </TableCell>
                           <TableCell>{student.grade}</TableCell>
@@ -333,7 +363,8 @@ export default function EntregasPage() {
                                   <DialogHeader>
                                     <DialogTitle>Registrar Entrega</DialogTitle>
                                     <DialogDescription>
-                                      Verifique la identidad del tutor autorizado
+                                      Verifique la identidad del tutor
+                                      autorizado
                                     </DialogDescription>
                                   </DialogHeader>
                                   <div className="space-y-4 py-4">
@@ -348,7 +379,9 @@ export default function EntregasPage() {
                                         </AvatarFallback>
                                       </Avatar>
                                       <div>
-                                        <p className="font-medium">{student.name}</p>
+                                        <p className="font-medium">
+                                          {student.name}
+                                        </p>
                                         <p className="text-sm text-muted-foreground">
                                           {student.grade}
                                         </p>
@@ -399,7 +432,7 @@ export default function EntregasPage() {
                             )}
                           </TableCell>
                         </TableRow>
-                      )
+                      );
                     })}
                   </TableBody>
                 </Table>
@@ -462,5 +495,5 @@ export default function EntregasPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
